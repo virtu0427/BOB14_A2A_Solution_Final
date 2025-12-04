@@ -19,17 +19,17 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy utils and shared IAM package
-COPY utils/ ./utils/
-COPY iam ./iam
+COPY multi-agents/utils/ ./utils/
+COPY custom-ruleset/ ./iam
 
 # Copy agent files
-COPY agents/vehicle_agent/ .
+COPY multi-agents/agents/qulity_agent/ .
 
 # Copy .env file if it exists (for local settings)
-COPY agents/vehicle_agent/.env* ./
+COPY multi-agents/agents/qulity_agent/.env* ./
 
 # Expose port
-EXPOSE 10004
+EXPOSE 10003
 
 # Run the agent
-CMD ["python", "__main__.py", "--host", "0.0.0.0", "--port", "10004"]
+CMD ["python", "__main__.py", "--host", "0.0.0.0", "--port", "10003"]

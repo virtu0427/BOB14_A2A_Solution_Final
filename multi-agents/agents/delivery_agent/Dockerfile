@@ -19,14 +19,14 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy utils and shared IAM package
-COPY utils/ ./utils/
-COPY iam ./iam
+COPY multi-agents/utils/ ./utils/
+COPY custom-ruleset/ ./iam
 
 # Copy agent files
-COPY agents/delivery_agent/ .
+COPY multi-agents/agents/delivery_agent/ .
 
 # Copy .env file if it exists (for local settings)
-COPY agents/delivery_agent/.env* ./
+COPY multi-agents/agents/delivery_agent/.env* ./
 
 # Expose port
 EXPOSE 10001
