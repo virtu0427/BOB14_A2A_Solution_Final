@@ -10,10 +10,10 @@ COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy server files
-COPY Orchestrator_plugin/server_redis.py .
+COPY multi-agents/Orchestrator_plugin/server_redis.py .
 
 # Copy IAM security solution modules
-COPY iam ./iam
+COPY custom-ruleset/ ./iam
 
 EXPOSE 8005
 

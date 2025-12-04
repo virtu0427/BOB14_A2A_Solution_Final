@@ -17,13 +17,13 @@ RUN pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 # Copy shared utility modules first for better Docker caching
-COPY utils/ ./utils/
+COPY multi-agents/utils/ ./utils/
 
 # Copy IAM policy modules required by the orchestrator plugin
-COPY iam/ ./iam/
+COPY custom-ruleset/ ./iam/
 
 # Copy orchestrator plugin sources
-COPY Orchestrator_plugin/ ./Orchestrator_plugin/
+COPY multi-agents/Orchestrator_plugin/ ./Orchestrator_plugin/
 
 ENV PYTHONPATH=/app
 

@@ -1,35 +1,8 @@
+x-google-env: &google_env
+  - ./multi-agents/.env
+
 services:
-  # Agent Registry (주석 처리 - 디렉토리 없음)
-  # agent-registry:
-  #   build:
-  #     context: ./agent-reg
-  #     dockerfile: Dockerfile
-  #   container_name: agent-registry
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     - DATABASE_PATH=/app/agent_reg.db
-  #   volumes:
-  #     - agent_reg_data:/app
-  #   networks:
-  #     - agent-network
-  #   restart: unless-stopped
-
-  # Agent Registry Frontend (주석 처리 - 디렉토리 없음)
-  # agent-registry-frontend:
-  #   build:
-  #     context: ./agent-reg/frontend
-  #     dockerfile: Dockerfile
-  #   container_name: attager-agent-registry-frontend
-  #   ports:
-  #     - "3000:3000"
-  #   networks:
-  #     - agent-network
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - agent-registry
-
-  # Redis for Agents (기존 에이전트용 Redis)
+  # Redis for agents
   redis-agents:
     image: redis:7-alpine
     container_name: attager-redis-agents
@@ -46,10 +19,10 @@ services:
       timeout: 5s
       retries: 5
 
-  # Seed data for agent Redis
+  # Seed agent Redis
   agent-redis-seeder:
     build:
-      context: ./agentDB
+      context: ./multi-agents/agentDB
       dockerfile: Dockerfile.seeder
     container_name: attager-agent-redis-seeder
     depends_on:
@@ -61,12 +34,12 @@ services:
       - AGENT_REDIS_DB=0
       - AGENT_REDIS_WAIT_SECONDS=60
     volumes:
-      - ./agentDB/seed_data.txt:/app/seed_data.txt:ro
+      - ./multi-agents/agentDB/seed_data.txt:/app/seed_data.txt:ro
     networks:
       - agent-network
     restart: "no"
 
-  # Redis for IAM Solution (IAM 솔루션 전용 Redis)
+  # Redis for IAM
   redis-iam:
     image: redis:7-alpine
     container_name: attager-redis-iam
@@ -83,11 +56,11 @@ services:
       timeout: 5s
       retries: 5
 
-  # IAM Policy Server (can be replaced by frontend app)
+  # Policy server (IAM)
   policy-server:
     build:
       context: .
-      dockerfile: ./Orchestrator_plugin/Dockerfile
+      dockerfile: ./multi-agents/Orchestrator_plugin/Dockerfile
     container_name: attager-policy-server
     ports:
       - "8005:8005"
@@ -103,7 +76,7 @@ services:
       - agent-network
     command: python server_redis.py
 
-  # Solution Redis
+  # Redis for solution app
   solution-redis:
     image: redis:7-alpine
     container_name: attager-solution-redis
@@ -115,7 +88,7 @@ services:
     networks:
       - agent-network
 
-  # IAM Solution (Backend + Frontend)
+  # Solution (backend + frontend)
   solution:
     build:
       context: ./solution
@@ -128,17 +101,15 @@ services:
       - ./solution/.env
     environment:
       - REDIS_URL=redis://solution-redis:6379/0
-      - JWT_REDIS_URL=redis://host.docker.internal:6380/0
+      - JWT_REDIS_URL=redis://jwt-redis:6379/0
       - PORT=3000
-      - USERME_DIRECT_URL=http://host.docker.internal:8000/users/me
+      - USERME_DIRECT_URL=http://jwt-server:8000/users/me
     volumes:
       - solution_data:/app/data
     depends_on:
       - solution-redis
       - jwt-server
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - agent-network
 
@@ -146,12 +117,13 @@ services:
   delivery-agent:
     build:
       context: .
-      dockerfile: ./agents/delivery_agent/Dockerfile
+      dockerfile: ./multi-agents/agents/delivery_agent/Dockerfile
+    env_file: *google_env
     container_name: delivery-agent
     ports:
       - "10001:10001"
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_API_KEY
       - REDIS_HOST=redis-agents
       - REDIS_PORT=6379
       - POLICY_SERVER_URL=http://policy-server:8005
@@ -171,12 +143,13 @@ services:
   item-agent:
     build:
       context: .
-      dockerfile: ./agents/item_agent/Dockerfile
+      dockerfile: ./multi-agents/agents/item_agent/Dockerfile
+    env_file: *google_env
     container_name: item-agent
     ports:
       - "10002:10002"
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_API_KEY
       - REDIS_HOST=redis-agents
       - REDIS_PORT=6379
       - POLICY_SERVER_URL=http://policy-server:8005
@@ -196,12 +169,13 @@ services:
   quality-agent:
     build:
       context: .
-      dockerfile: ./agents/qulity_agent/Dockerfile
+      dockerfile: ./multi-agents/agents/qulity_agent/Dockerfile
+    env_file: *google_env
     container_name: quality-agent
     ports:
       - "10003:10003"
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_API_KEY
       - REDIS_HOST=redis-agents
       - REDIS_PORT=6379
       - POLICY_SERVER_URL=http://policy-server:8005
@@ -221,12 +195,13 @@ services:
   vehicle-agent:
     build:
       context: .
-      dockerfile: ./agents/vehicle_agent/Dockerfile
+      dockerfile: ./multi-agents/agents/vehicle_agent/Dockerfile
+    env_file: *google_env
     container_name: vehicle-agent
     ports:
       - "10004:10004"
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_API_KEY
       - REDIS_HOST=redis-agents
       - REDIS_PORT=6379
       - POLICY_SERVER_URL=http://policy-server:8005
@@ -246,10 +221,11 @@ services:
   orchestrator:
     build:
       context: .
-      dockerfile: ./Orchestrator_plugin/Dockerfile.orchestrator
+      dockerfile: ./multi-agents/Orchestrator_plugin/Dockerfile.orchestrator
+    env_file: *google_env
     container_name: orchestrator
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_API_KEY
       - AGENT_REGISTRY_URL=http://solution:3000
       - POLICY_SERVER_URL=http://policy-server:8005
       - LOG_SERVER_URL=http://policy-server:8005
@@ -264,7 +240,7 @@ services:
     networks:
       - agent-network
 
-  # Standalone Orchestrator chat client
+  # Orchestrator Chat UI
   orchestrator-client:
     build:
       context: .
@@ -308,13 +284,16 @@ services:
     depends_on:
       - jwt-redis
     environment:
+      - SECRET_KEY=${SECRET_KEY:-changeme}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
       - REDIS_URL=redis://jwt-redis:6379/0
       - TENANT_REDIS_URL=redis://jwt-redis:6379/1
     restart: unless-stopped
     networks:
       - agent-network
 
-  # JWS Signing/Verification Server
+  # JWS signing/verification server
   jws-server:
     build:
       context: ./jws-server
@@ -338,9 +317,8 @@ networks:
     driver: bridge
 
 volumes:
-  # agent_reg_data:       # Agent Registry SQLite 데이터 (주석 처리 - 서비스 없음)
-  redis-agents-data:    # 에이전트용 Redis 데이터
-  redis-iam-data:       # IAM 솔루션용 Redis 데이터
-  solution_data:        # Solution 앱 데이터
-  solution_redis_data:  # Solution Redis 데이터
-  jwt_redis_data:       # JWT Redis 데이터
+  redis-agents-data:
+  redis-iam-data:
+  solution_data:
+  solution_redis_data:
+  jwt_redis_data:

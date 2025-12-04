@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, redirect, send_from_directory
+from flask import Flask, redirect, request, send_from_directory, url_for
 
 from .core import repo
 
@@ -64,6 +64,13 @@ def create_app() -> Flask:
         return send_from_directory(app.static_folder, 'index.html')
 
     @app.get('/logs')
+    def logs_page_redirect():
+        target = url_for('logs_page')
+        if request.query_string:
+            target = f"{target}?{request.query_string.decode('utf-8')}"
+        return redirect(target)
+
+    @app.get('/logs/')
     def logs_page():
         target = os.path.join(app.static_folder, 'logs', 'logs.html')
         if os.path.exists(target):
@@ -71,6 +78,12 @@ def create_app() -> Flask:
         return send_from_directory(app.static_folder, 'index.html')
 
     @app.get('/rulesets')
+    def ruleset_page_redirect():
+        target = url_for('ruleset_page')
+        if request.query_string:
+            target = f"{target}?{request.query_string.decode('utf-8')}"
+        return redirect(target)
+
     @app.get('/rulesets/')
     def ruleset_page():
         # ?? ?? ?? ?? ?? ??? ??? ??
@@ -88,7 +101,7 @@ def create_app() -> Flask:
     @app.get('/rulsets')
     @app.get('/rulsets/')
     def ruleset_redirect():
-        return redirect('/rulesets')
+        return redirect(url_for('ruleset_page'))
 
 
     from .api import api_bp
