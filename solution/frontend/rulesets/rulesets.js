@@ -120,6 +120,11 @@ async function refreshAll() {
   try {
     allRulesets = await fetchJson(`${API_BASE}/api/rulesets`);
     allGroups = await fetchJson(`${API_BASE}/api/rulesets/groups`);
+    // Ensure tenant_id is present for newly created groups even if API omits it
+    allGroups = (allGroups || []).map((g) => ({
+      ...g,
+      tenant_id: g.tenant_id || g.tenant || g.tenantId || "",
+    }));
     allUsers = await fetchJson(`${API_BASE}/api/rulesets/users`);
     allTenants = await fetchJson(`${API_BASE}/api/rulesets/tenants`).catch(
       () => []
@@ -207,6 +212,9 @@ function initGroupActions() {
     btnAddGroup.addEventListener("click", () =>
       requireAdminToken(() => openGroupModal())
     );
+
+  const btnCancelGroup = document.getElementById("btn-cancel-group");
+  btnCancelGroup?.addEventListener("click", () => closeModal("group-modal"));
 
   const btnEditGroup = document.getElementById("btn-edit-group");
   if (btnEditGroup) {
