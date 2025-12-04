@@ -64,7 +64,7 @@
                 <div class="agent-details-placeholder">
                   <h3>에이전트를 선택하세요</h3>
                   <p>
-                    왼쪽 목록에서 에이전트를 선택하면 플러그인과 IAM 룰셋 연결을
+                    왼쪽 목록에서 에이전트를 선택하면 플러그인 연결 현황을
                     확인할 수 있습니다.
                   </p>
                 </div>
@@ -113,47 +113,6 @@
           <ul class="plugin-list"></ul>
         </div>
       </div>
-
-      <form id="agent-policy-form" class="policy-form">
-        <div class="policy-header">
-          <h3>IAM 정책 연결</h3>
-          <label class="toggle">
-            <input type="checkbox" id="policy-enabled" />
-            <span>IAM 정책 사용</span>
-          </label>
-        </div>
-
-        <div class="policy-columns">
-          <div class="policy-column" data-policy-type="prompt_validation">
-            <h4>프롬프트 검증</h4>
-            <p class="policy-description">
-              실행 전에 입력 프롬프트를 검증하는 룰셋을 연결합니다.
-            </p>
-            <div class="ruleset-list"></div>
-          </div>
-
-          <div class="policy-column" data-policy-type="tool_validation">
-            <h4>툴 검증</h4>
-            <p class="policy-description">
-              툴 호출을 제어하고 전달되는 인자를 검증합니다.
-            </p>
-            <div class="ruleset-list"></div>
-          </div>
-
-          <div class="policy-column" data-policy-type="response_filtering">
-            <h4>응답 필터링</h4>
-            <p class="policy-description">
-              생성된 응답을 필터링하거나 민감 정보를 가립니다.
-            </p>
-            <div class="ruleset-list"></div>
-          </div>
-        </div>
-
-        <div class="policy-actions">
-          <span class="status-message" id="policy-status" role="status"></span>
-          <button type="submit" class="btn-primary">저장</button>
-        </div>
-      </form>
     </template>
 
     <!-- 에이전트 추가 모달 -->

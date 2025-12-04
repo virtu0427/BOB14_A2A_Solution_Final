@@ -2,11 +2,6 @@ const API_BASE = window.location.origin;
 
 const state = {
   agents: [],
-  rulesets: {
-    prompt_validation: [],
-    tool_validation: [],
-    response_filtering: [],
-  },
   selectedAgentId: null,
   agentCache: new Map(),
 };
@@ -35,7 +30,7 @@ function formatDateTime(value) {
 }
 
 async function initialise() {
-  await Promise.all([loadAgents(), loadRulesets()]);
+  await loadAgents();
   bindSearch();
   setupAddAgentModal();
 }
@@ -70,34 +65,6 @@ async function loadAgents() {
     if (list) {
       list.innerHTML = '<li class="empty-state">에이전트 목록을 불러올 수 없습니다.</li>';
     }
-  }
-}
-
-async function loadRulesets() {
-  try {
-    const response = await fetch(`${API_BASE}/api/rulesets`);
-    if (!response.ok) throw new Error('룰셋을 불러오지 못했습니다');
-    const rulesets = await response.json();
-
-    const grouped = {
-      prompt_validation: [],
-      tool_validation: [],
-      response_filtering: [],
-    };
-
-    (rulesets || []).forEach((ruleset) => {
-      if (grouped[ruleset.type]) {
-        grouped[ruleset.type].push(ruleset);
-      }
-    });
-
-    Object.keys(grouped).forEach((key) => {
-      grouped[key].sort((a, b) => (a.name || a.ruleset_id).localeCompare(b.name || b.ruleset_id));
-    });
-
-    state.rulesets = grouped;
-  } catch (error) {
-    console.error('룰셋을 불러오지 못했습니다', error);
   }
 }
 
@@ -218,9 +185,6 @@ function renderAgentDetails(agent) {
   const statusChip = node.querySelector('.overview-meta .status-chip');
   const created = node.querySelector('[data-role="created"]');
   const pluginList = node.querySelector('.plugin-list');
-  const policyForm = node.querySelector('#agent-policy-form');
-  const enabledCheckbox = node.querySelector('#policy-enabled');
-  const statusMessage = node.querySelector('#policy-status');
   const deleteButton = node.querySelector('#delete-agent-btn');
   const actionStatus = node.querySelector('#agent-action-status');
 
@@ -239,20 +203,6 @@ function renderAgentDetails(agent) {
   }
   if (pluginList) {
     renderPluginList(pluginList, agent.plugins);
-  }
-
-  const policy = agent.policy || {};
-  if (enabledCheckbox) {
-    enabledCheckbox.checked = policy.enabled !== false;
-  }
-
-  populatePolicyColumns(node, policy);
-
-  if (policyForm) {
-    policyForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      await savePolicy(agent.agent_id, policyForm, statusMessage);
-    });
   }
 
   if (deleteButton) {
@@ -295,102 +245,6 @@ function renderPluginList(listElement, plugins = []) {
     });
 }
 
-function populatePolicyColumns(root, policy) {
-  const columns = root.querySelectorAll('.policy-column');
-
-  columns.forEach((column) => {
-    const type = column.dataset.policyType;
-    const rulesetContainer = column.querySelector('.ruleset-list');
-    if (!type || !rulesetContainer) return;
-
-    rulesetContainer.innerHTML = '';
-    const available = state.rulesets[type] || [];
-    const assigned = new Set(policy[`${type}_rulesets`] || []);
-
-    if (available.length === 0) {
-      rulesetContainer.innerHTML = '<p class="empty-state">사용 가능한 룰셋이 없습니다.</p>';
-      return;
-    }
-
-    available.forEach((ruleset) => {
-      const id = `${type}-${ruleset.ruleset_id}`;
-      const wrapper = document.createElement('label');
-      wrapper.className = 'ruleset-item';
-      wrapper.innerHTML = `
-        <input type="checkbox" name="${type}" value="${ruleset.ruleset_id}" ${
-          assigned.has(ruleset.ruleset_id) ? 'checked' : ''
-        } />
-        <div class="ruleset-body">
-          <span class="ruleset-name">${ruleset.name || ruleset.ruleset_id}</span>
-          <p class="ruleset-description">${ruleset.description || '설명이 제공되지 않았습니다.'}</p>
-        </div>
-      `;
-      rulesetContainer.appendChild(wrapper);
-    });
-  });
-}
-
-async function savePolicy(agentId, form, statusElement) {
-  const submitButton = form.querySelector('button[type="submit"]');
-  const enabledCheckbox = form.querySelector('#policy-enabled');
-
-  const payload = {
-    prompt_validation_rulesets: getSelectedValues(form, 'prompt_validation'),
-    tool_validation_rulesets: getSelectedValues(form, 'tool_validation'),
-    response_filtering_rulesets: getSelectedValues(form, 'response_filtering'),
-    enabled: enabledCheckbox ? enabledCheckbox.checked : true,
-  };
-
-  if (submitButton) {
-    submitButton.disabled = true;
-    submitButton.textContent = '저장 중…';
-  }
-  if (statusElement) {
-    statusElement.textContent = '변경 사항을 저장하는 중입니다…';
-  }
-
-  try {
-    const response = await fetch(
-      `${API_BASE}/api/agents/${encodeURIComponent(agentId)}/policy`,
-      {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) throw new Error('정책을 업데이트하지 못했습니다');
-
-    // Refresh cached agent
-    state.agentCache.delete(agentId);
-    const updated = await fetchAgentDetails(agentId);
-    if (updated) {
-      renderAgentDetails(updated);
-    }
-
-    if (statusElement) {
-      statusElement.textContent = '정책 연결을 저장했습니다.';
-      statusElement.classList.remove('error');
-    }
-  } catch (error) {
-    console.error('정책 저장에 실패했습니다', error);
-    if (statusElement) {
-      statusElement.textContent = '정책 연결을 저장하지 못했습니다.';
-      statusElement.classList.add('error');
-    }
-  } finally {
-    if (submitButton) {
-      submitButton.disabled = false;
-      submitButton.textContent = '저장';
-    }
-  }
-}
-
-function getSelectedValues(form, type) {
-  return Array.from(form.querySelectorAll(`input[name="${type}"]:checked`)).map((input) => input.value);
-}
-
 function setAgentActionStatus(element, message, isError = false) {
   if (!element) return;
   element.textContent = message || '';
@@ -405,7 +259,7 @@ function showAgentPlaceholder(message) {
     <div class="agent-details-placeholder">
       <h3>${title}</h3>
       <p>
-        왼쪽 목록에서 에이전트를 선택하면 플러그인과 IAM 룰셋을 확인할 수 있습니다.
+        왼쪽 목록에서 에이전트를 선택하면 플러그인 연결 현황을 확인할 수 있습니다.
       </p>
     </div>
   `;
