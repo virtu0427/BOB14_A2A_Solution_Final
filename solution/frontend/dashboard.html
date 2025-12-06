@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>A2A Security Dashboard - 대시보드</title>
+    <title>A2A Observability Dashboard</title>
     <link rel="stylesheet" href="style.css" />
     <link
       rel="stylesheet"
@@ -587,7 +587,19 @@
                   </div>
                 </div>
               </div>
+              <div class="kpi-meta" data-field="meta">지연/에러율 기반 상태</div>
             </article>
+            <article class="kpi-card" id="kpi-throughput">
+              <div class="kpi-title">Request Throughput</div>
+              <div class="kpi-value" data-field="value">--</div>
+              <div class="kpi-meta" data-field="trend">req/s · 최근 5분</div>
+            </article>
+            <article class="kpi-card" id="kpi-error-rate">
+              <div class="kpi-title">Auth & Policy Error Rate</div>
+              <div class="kpi-value" data-field="value">--</div>
+              <div class="kpi-meta" data-field="meta">JWT/JWS 실패·Policy Block</div>
+            </article>
+          </section>
 
             <!-- Stats (Span 4) -->
             <article class="dashboard-card span-4" data-card="stats">
@@ -635,6 +647,7 @@
                     </div>
                   </div>
                 </div>
+                <ul class="legend-list" id="policy-legend"></ul>
               </div>
             </article>
 
@@ -650,8 +663,10 @@
                 <div class="chart-container">
                   <canvas id="events-chart"></canvas>
                 </div>
+                <ul class="legend-list" id="request-legend"></ul>
               </div>
             </article>
+          </section>
 
             <!-- Logs (Span 8 - 그래프와 동일 너비) -->
             <article class="dashboard-card span-8" data-card="logs">

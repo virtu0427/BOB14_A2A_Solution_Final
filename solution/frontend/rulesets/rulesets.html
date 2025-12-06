@@ -47,7 +47,7 @@
                 <div id="group-detail-content" class="hidden">
                   <div class="group-header">
                     <div class="group-info">
-                      <h2 id="selected-group-name" >그룹 이름</h2>
+                      <h2 id="selected-group-name">그룹 이름</h2>
                       <p id="selected-group-desc">그룹 설명</p>
                     </div>
                     <div class="group-actions">
@@ -97,13 +97,13 @@
                   <div class="group-section flex-grow">
                     <div class="section-header">
                       <h4>
-                        <i class="fas fa-shield-alt"></i> 그룹 접근 허용 목록
+                        <i class="fas fa-shield-alt"></i> 그룹 접근 제어 목록
                       </h4>
                       <button
                         class="btn-primary btn-xs"
                         id="btn-create-group-rule"
                       >
-                        허용 정책 추가
+                        제어 정책 추가
                       </button>
                     </div>
                     <div class="table-container">
@@ -132,33 +132,6 @@
       </main>
     </div>
 
-    <div class="modal-overlay hidden" id="token-modal">
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="token-modal-title">
-        <div class="modal-header">
-          <h3 id="token-modal-title">관리자 JWT 입력</h3>
-          <button class="btn-secondary" id="token-modal-close" type="button">닫기</button>
-        </div>
-        <div class="modal-content">
-          <form id="token-form" class="modal-form">
-            <label for="token-input">관리자 JWT 토큰</label>
-            <input
-              type="password"
-              id="token-input"
-              placeholder="Bearer 토큰을 붙여넣어주세요"
-              autocomplete="off"
-              required
-            />
-            <p id="token-status" class="text-secondary text-sm"></p>
-            <div class="form-actions">
-              <button type="submit" class="btn-primary">인증</button>
-              <button type="button" class="btn-secondary" id="token-form-cancel">
-                취소
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
     <template id="ruleset-row-template">
       <tr>
         <td
@@ -305,15 +278,18 @@
 
         <div class="form-grid">
           <div class="form-group">
-            <label for="ruleset-name-display">룰셋 이름</label>
+            <label for="ruleset-id">정책 ID</label>
             <input
               type="text"
-              id="ruleset-name-display"
-              readonly
-              placeholder="자동 생성됨 (예: rule-1)"
+              id="ruleset-id"
+              name="ruleset_id"
+              required
+              placeholder="unique_policy_id"
             />
-            <input type="hidden" id="ruleset-id" name="ruleset_id" required />
-            <input type="hidden" id="ruleset-name" name="name" required />
+          </div>
+          <div class="form-group">
+            <label for="ruleset-name">정책 이름</label>
+            <input type="text" id="ruleset-name" name="name" required />
           </div>
 
           <div class="form-group hidden" id="type-select-container">
@@ -354,10 +330,22 @@
               </select>
             </div>
             <div class="form-group">
-              <label>대상 Tool</label>
-              <select id="target-tool-select" name="tool_name_select" disabled>
-                <option value="">에이전트를 먼저 선택하세요</option>
-              </select>
+              <label>대상 Tool (다중 선택 가능)</label>
+              <div id="target-tool-multiselect" class="multi-select-wrapper">
+                <div class="multi-select-header" id="tool-multiselect-header">
+                  <span class="placeholder">에이전트를 먼저 선택하세요</span>
+                  <i class="fas fa-chevron-down text-secondary text-xs"></i>
+                </div>
+                <div
+                  class="multi-select-dropdown"
+                  id="tool-multiselect-list"
+                ></div>
+              </div>
+              <input
+                type="hidden"
+                name="tool_names"
+                id="ruleset-tool-names-hidden"
+              />
             </div>
           </div>
         </div>

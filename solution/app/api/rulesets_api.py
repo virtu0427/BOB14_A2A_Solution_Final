@@ -126,6 +126,30 @@ def _parse_rules(value: Any):
             return {"raw": value}
     return {}
 
+def _normalize_tool_names(payload: dict) -> list[str]:
+    """tool_name/tool_names/tool 필드를 모두 리스트로 통합."""
+    names: list[str] = []
+    raw_list = payload.get("tool_names") or payload.get("tools")
+    if isinstance(raw_list, str):
+        raw_list = [raw_list]
+    if isinstance(raw_list, list):
+        for item in raw_list:
+            if isinstance(item, str) and item.strip():
+                names.append(item.strip())
+    raw_single = payload.get("tool_name") or payload.get("tool")
+    if isinstance(raw_single, str) and raw_single.strip():
+        for part in raw_single.split(","):
+            part = part.strip()
+            if part:
+                names.append(part)
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for name in names:
+        if name not in seen:
+            seen.add(name)
+            deduped.append(name)
+    return deduped
+
 
 def _normalize_ruleset_payload(body: dict, existing: dict | None = None) -> dict:
     """프론트 폼 데이터와 파일 시드가 같은 형태로 저장되도록 가볍게 정규화한다."""
@@ -135,6 +159,8 @@ def _normalize_ruleset_payload(body: dict, existing: dict | None = None) -> dict
     scope = merged.get('scope') or ('group' if merged.get('group_id') else 'global')
     rules = _parse_rules(merged.get('rules', existing.get('rules', {})))
     enabled = _as_bool(merged.get('enabled', existing.get('enabled', True)), default=True)
+    tool_names = _normalize_tool_names(merged)
+    primary_tool = tool_names[0] if tool_names else (merged.get('tool_name') or merged.get('tool'))
 
     normalized = {
         **merged,
@@ -145,7 +171,8 @@ def _normalize_ruleset_payload(body: dict, existing: dict | None = None) -> dict
         "scope": scope,
         "group_id": merged.get('group_id') or None,
         "target_agent": merged.get('target_agent') or merged.get('agent_id'),
-        "tool_name": merged.get('tool_name') or merged.get('tool'),
+        "tool_name": primary_tool,
+        "tool_names": tool_names,
         "rules": rules,
         "enabled": enabled,
     }

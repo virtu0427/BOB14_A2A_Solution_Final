@@ -39,18 +39,16 @@ def get_model_with_fallback() -> Any:
     Gemini 모델을 우선 사용하고, 실패하면 로컬 LLM으로 fallback하는 모델 인스턴스 반환
     """
     use_gemini = os.getenv("USE_GEMINI", "true").lower() == "true"
-    fallback_to_local = os.getenv("FALLBACK_TO_LOCAL", "true").lower() == "true"
+    # 기본값을 false로 낮춰 의도치 않은 Ollama fallback을 방지
+    fallback_to_local = os.getenv("FALLBACK_TO_LOCAL", "false").lower() == "true"
     
     if use_gemini:
         try:
             # Google API Key 확인
             google_api_key = os.getenv("GOOGLE_API_KEY")
             if not google_api_key or google_api_key == "your_google_api_key_here":
-                logger.warning("GOOGLE_API_KEY가 설정되지 않았습니다. 로컬 LLM을 사용합니다.")
-                if fallback_to_local:
-                    return get_local_model()
-                else:
-                    raise ValueError("Google API Key가 설정되지 않았고 fallback이 비활성화되어 있습니다.")
+                logger.warning("GOOGLE_API_KEY가 설정되지 않았습니다.")
+                raise ValueError("Google API Key가 설정되지 않아 Gemini를 사용할 수 없습니다.")
             
             # Gemini 모델 사용 - Google ADK 문서에 따라 직접 문자열로 전달
             model_name = get_gemini_model("gemini-2.0-flash")
@@ -62,8 +60,8 @@ def get_model_with_fallback() -> Any:
             if fallback_to_local:
                 logger.info("로컬 LLM으로 fallback합니다.")
                 return get_local_model()
-            else:
-                raise
+            # fallback이 비활성화된 경우 즉시 예외를 올려 잘못된 Ollama 호출을 방지
+            raise
     else:
         logger.info("USE_GEMINI가 false로 설정되어 있습니다. 로컬 LLM을 사용합니다.")
         return get_local_model()
