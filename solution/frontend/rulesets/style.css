@@ -576,3 +576,81 @@
 .user-select-table tbody tr {
   z-index: 0;
 }
+
+/* --- 멀티 셀렉트 드롭다운 스타일 --- */
+.multi-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.multi-select-header {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-surface);
+  padding: 0.6rem;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 42px;
+}
+
+.multi-select-header:hover {
+  border-color: var(--primary);
+}
+
+.multi-select-header .placeholder {
+  color: var(--text-secondary);
+}
+
+.multi-select-dropdown {
+  position: absolute;
+  top: 105%;
+  left: 0;
+  right: 0;
+  background: #1e293b;
+  border: 1px solid var(--border-surface);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.multi-select-dropdown.show {
+  display: block;
+}
+
+.multi-select-option {
+  padding: 0.5rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+}
+
+.multi-select-option:last-child {
+  border-bottom: none;
+}
+
+.multi-select-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.multi-select-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.multi-select-option label {
+  cursor: pointer;
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}

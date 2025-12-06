@@ -318,16 +318,13 @@ def return_result(tool_context: ToolContext, result: str) -> str:
 # --- 4. Root Agent 정의 & 모델 설정 ---
 try:
     model = get_model_with_fallback()
-    logger.info(f"모델 설정 완료: {type(model).__name__ if hasattr(model, '__class__') else model}")
-except Exception as e:
-    logger.error(f"모델 설정 실패: {e}")
-    ollama_host = os.getenv("OLLAMA_HOST", "localhost")
-    model = LiteLlm(
-        model="ollama_chat/gpt-oss:20b",
-        api_base=f"http://{ollama_host}:11434",
-        temperature=0.7,
+    logger.info(
+        f"모델 설정 완료: {type(model).__name__ if hasattr(model, '__class__') else model}"
     )
-    logger.info("최후 fallback으로 로컬 LLM 사용")
+except Exception as e:
+    # 더 이상 로컬 Ollama로 강제 fallback하지 않고 오류를 그대로 노출해 원인 파악을 용이하게 한다.
+    logger.error(f"모델 설정 실패: {e}")
+    raise
 
 root_agent = LlmAgent(
     name="root_orchestrator",

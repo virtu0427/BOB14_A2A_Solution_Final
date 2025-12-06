@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>A2A Security Dashboard - 대시보드</title>
+    <title>A2A Observability Dashboard</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
@@ -22,129 +22,121 @@
       </header>
 
       <main class="content-area">
-        <div class="content-wrapper">
-          <header class="dashboard-header">
-            <div class="dashboard-header__text">
-              <h1>보안 운영 현황</h1>
-              <p>에이전트 흐름, 정책 로그, 트래픽 상태를 실시간으로 확인합니다.</p>
+        <div class="content-wrapper observability">
+          <header class="dashboard-hero">
+            <div>
+              <p class="eyebrow">Tyk 스타일 · 정책/토큰/보안 가시성</p>
+              <h1>A2A Observability Dashboard</h1>
+              <p class="lede">
+                API Gateway · JWT/JWS 서버 · IAM Policy Engine · Multi-Agents 전 구간의 트래픽/정책/토큰/보안 이벤트를 한눈에 모니터링합니다.
+              </p>
             </div>
-            <div class="dashboard-header__actions">
-              <button class="btn-secondary" id="refresh-dashboard">전체 새로고침</button>
+            <div class="hero-actions">
+              <div class="filters">
+                <label>
+                  기간
+                  <select id="time-range">
+                    <option value="60">최근 60분</option>
+                    <option value="360">최근 6시간</option>
+                    <option value="1440">최근 24시간</option>
+                  </select>
+                </label>
+                <label>
+                  테넌트/고객사
+                  <input id="tenant-filter" type="text" placeholder="tenant 또는 client id" />
+                </label>
+              </div>
+              <div class="hero-buttons">
+                <button class="btn-secondary" id="refresh-dashboard">새로고침</button>
+              </div>
             </div>
           </header>
 
-          <section class="dashboard-layout">
-            <article class="widget dashboard-card span-8" data-card="flow">
+          <section class="kpi-grid">
+            <article class="kpi-card" id="kpi-active-clients">
+              <div class="kpi-title">Active A2A Clients</div>
+              <div class="kpi-value" data-field="value">--</div>
+              <div class="kpi-meta" data-field="meta">최근 15분 기준</div>
+            </article>
+            <article class="kpi-card" id="kpi-health">
+              <div class="kpi-title">JWT/JWS Server Health</div>
+              <div class="kpi-badges">
+                <span class="pill" data-field="jwt">JWT: --</span>
+                <span class="pill" data-field="jws">JWS: --</span>
+              </div>
+              <div class="kpi-meta" data-field="meta">지연/에러율 기반 상태</div>
+            </article>
+            <article class="kpi-card" id="kpi-throughput">
+              <div class="kpi-title">Request Throughput</div>
+              <div class="kpi-value" data-field="value">--</div>
+              <div class="kpi-meta" data-field="trend">req/s · 최근 5분</div>
+            </article>
+            <article class="kpi-card" id="kpi-error-rate">
+              <div class="kpi-title">Auth & Policy Error Rate</div>
+              <div class="kpi-value" data-field="value">--</div>
+              <div class="kpi-meta" data-field="meta">JWT/JWS 실패·Policy Block</div>
+            </article>
+          </section>
+
+          <section class="panel-grid">
+            <article class="widget dashboard-card span-6">
               <div class="widget-header-with-button">
                 <div>
-                  <h2 class="widget-title">에이전트 흐름</h2>
-                  <p class="widget-subtitle">연결 관계와 정책 적용 현황</p>
-                </div>
-                <div class="widget-actions">
-                  <span class="pill pill-live" id="flow-status">동기화 중…</span>
-                  <button class="btn-secondary" id="refresh-flow">그래프 새로고침</button>
+                  <h2 class="widget-title">정책 결과 분포</h2>
+                  <p class="widget-subtitle">Allow / Deny / Quarantine / InvalidToken / RateLimit</p>
                 </div>
               </div>
-              <div class="card-body">
-                <div class="graph-shell">
-                  <div id="graph-tooltip" class="graph-tooltip hidden"></div>
-                  <svg id="agent-flow-graph" role="presentation"></svg>
+              <div class="card-body two-col">
+                <div class="chart-shell compact">
+                  <canvas id="policy-donut"></canvas>
                 </div>
+                <ul class="legend-list" id="policy-legend"></ul>
               </div>
             </article>
 
-            <article class="widget dashboard-card span-4" data-card="stats">
+            <article class="widget dashboard-card span-6">
               <div class="widget-header-with-button">
                 <div>
-                  <h2 class="widget-title">운영 지표</h2>
-                  <p class="widget-subtitle">등록 현황과 위험 지수</p>
-                </div>
-                <div class="widget-actions">
-                  <span class="pill" id="entity-selected">에이전트</span>
+                  <h2 class="widget-title">요청 유형 분포</h2>
+                  <p class="widget-subtitle">TokenIssue / TokenVerify / PolicyLookup / API Invoke</p>
                 </div>
               </div>
-              <div class="card-body">
-                <div class="stat-grid">
-                  <div class="stat-card">
-                    <span class="label">총 에이전트</span>
-                    <span class="value" id="total-agents">0</span>
-                  </div>
-                  <div class="stat-card">
-                    <span class="label">총 룰셋</span>
-                    <span class="value" id="total-rulesets">0</span>
-                  </div>
-                  <div class="stat-card">
-                    <span class="label">정책 위반 (24시간)</span>
-                    <span class="value" id="total-violations">0</span>
-                  </div>
-                  <div class="stat-card">
-                    <span class="label">수집된 이벤트</span>
-                    <span class="value" id="total-events">0</span>
-                  </div>
+              <div class="card-body two-col">
+                <div class="chart-shell compact">
+                  <canvas id="request-donut"></canvas>
                 </div>
-                <div class="risk-meter" id="risk-indicator">
-                  <div class="risk-label">위험 지수</div>
-                  <div class="risk-score" id="risk-score">--</div>
-                  <div class="risk-bar">
-                    <div class="risk-bar-fill" id="risk-bar-fill"></div>
-                  </div>
+                <ul class="legend-list" id="request-legend"></ul>
+              </div>
+            </article>
+          </section>
+
+          <section class="panel-grid">
+            <article class="widget dashboard-card span-6">
+              <div class="widget-header-with-button">
+                <div>
+                  <h2 class="widget-title">룰셋 타입 분포</h2>
+                  <p class="widget-subtitle">prompt_validation / tool_validation / response_filtering</p>
                 </div>
-                <div class="entity-summary">
-                  <div class="chart-shell compact">
-                    <canvas id="entity-chart" aria-label="엔티티 분포" role="img"></canvas>
-                  </div>
-                  <div class="entity-details">
-                    <h3 class="entity-details__title" id="entity-detail-title">에이전트</h3>
-                    <ul class="entity-details__list" id="entity-detail-list"></ul>
-                  </div>
+              </div>
+              <div class="card-body two-col">
+                <div class="chart-shell compact">
+                  <canvas id="ruleset-type-donut"></canvas>
                 </div>
+                <ul class="legend-list" id="ruleset-type-legend"></ul>
               </div>
             </article>
 
-            <article class="widget dashboard-card span-6" data-card="traffic">
+            <article class="widget dashboard-card span-6">
               <div class="widget-header-with-button">
                 <div>
-                  <h2 class="widget-title">이벤트 활동</h2>
-                  <p class="widget-subtitle">최근 60분 이벤트와 위반 추이</p>
-                </div>
-                <div class="widget-actions">
-                  <span class="pill" id="chart-range">최근 60분</span>
+                  <h2 class="widget-title">룰셋 테넌트별 현황</h2>
+                  <p class="widget-subtitle">테넌트/그룹 기준 룰셋 개수</p>
                 </div>
               </div>
               <div class="card-body">
-                <div class="chart-shell">
-                  <canvas id="events-chart"></canvas>
+                <div class="chart-shell small">
+                  <canvas id="ruleset-tenant-bar"></canvas>
                 </div>
-              </div>
-            </article>
-
-            <article class="widget dashboard-card span-6" data-card="agents">
-              <div class="widget-header-with-button">
-                <div>
-                  <h2 class="widget-title">에이전트 상태</h2>
-                  <p class="widget-subtitle">가동 중인 에이전트와 정책 위반</p>
-                </div>
-                <div class="widget-actions">
-                  <a class="btn-secondary" href="agents/agents.html">에이전트 관리</a>
-                </div>
-              </div>
-              <div class="card-body">
-                <ul class="agent-status-list" id="agent-status-list"></ul>
-              </div>
-            </article>
-
-            <article class="widget dashboard-card span-12" data-card="logs">
-              <div class="widget-header-with-button">
-                <div>
-                  <h2 class="widget-title">최근 정책 로그</h2>
-                  <p class="widget-subtitle">실시간 정책 결과와 메시지</p>
-                </div>
-                <div class="widget-actions">
-                  <a class="btn-primary" href="logs/logs.html">로그 탐색기 열기</a>
-                </div>
-              </div>
-              <div class="card-body">
-                <div class="log-list" id="dashboard-log-list"></div>
               </div>
             </article>
           </section>

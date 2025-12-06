@@ -123,7 +123,6 @@ services:
     ports:
       - "10001:10001"
     environment:
-      - GOOGLE_API_KEY
       - REDIS_HOST=redis-agents
       - REDIS_PORT=6379
       - POLICY_SERVER_URL=http://policy-server:8005
@@ -149,7 +148,6 @@ services:
     ports:
       - "10002:10002"
     environment:
-      - GOOGLE_API_KEY
       - REDIS_HOST=redis-agents
       - REDIS_PORT=6379
       - POLICY_SERVER_URL=http://policy-server:8005
@@ -175,7 +173,6 @@ services:
     ports:
       - "10003:10003"
     environment:
-      - GOOGLE_API_KEY
       - REDIS_HOST=redis-agents
       - REDIS_PORT=6379
       - POLICY_SERVER_URL=http://policy-server:8005
@@ -201,7 +198,6 @@ services:
     ports:
       - "10004:10004"
     environment:
-      - GOOGLE_API_KEY
       - REDIS_HOST=redis-agents
       - REDIS_PORT=6379
       - POLICY_SERVER_URL=http://policy-server:8005
@@ -225,7 +221,6 @@ services:
     env_file: *google_env
     container_name: orchestrator
     environment:
-      - GOOGLE_API_KEY
       - AGENT_REGISTRY_URL=http://solution:3000
       - POLICY_SERVER_URL=http://policy-server:8005
       - LOG_SERVER_URL=http://solution:3000
