@@ -1,78 +1,20 @@
 {
-  "agent_id": "DeliveryAgent",
-  "card": {
-    "name": "DeliveryAgent",
-    "description": "주문 배송 상태를 조회, 요약, 관리하는 Delivery Agent입니다.",
-    "protocolVersion": "1.0",
-    "url": "http://localhost:10001",
-    "preferredTransport": "JSONRPC",
-    "version": "1.0.0",
+  "name": "DeliveryAgent",
+  "description": "주문 배송 상태를 조회, 요약, 관리하는 Delivery Agent입니다.",
+  "protocolVersion": "1.0",
+  "url": "http://localhost:10001",
+  "preferredTransport": "JSONRPC",
+  "version": "1.0.0",
 
-    "provider": {
-      "organization": "Attager.ai",
-      "url": "https://Attager.ai"
-    },
+  "provider": {
+    "organization": "Attager.ai",
+    "url": "https://Attager.ai"
+  },
 
-    "capabilities": {
-      "streaming": true,
-      "pushNotifications": true,
-      "stateTransitionHistory": false
-    },
-
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    },
-
-    "security": [
-      {
-        "bearerAuth": []
-      }
-    ],
-
-    "defaultInputModes": ["text/plain"],
-    "defaultOutputModes": ["text/plain"],
-
-    "skills": [
-      {
-        "id": "delivery_lookup",
-        "name": "배송 조회",
-        "description": "주문번호 또는 사용자 ID로 배송 상태를 조회할 수 있습니다.",
-        "tags": ["delivery", "tracking", "order"],
-        "examples": [
-          "ORD1001 주문 상태 알려줘",
-          "고객 1234의 배송 현황 보여줘"
-        ],
-        "inputModes": ["text/plain"],
-        "outputModes": ["application/json"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      },
-      {
-        "id": "delivery_summary",
-        "name": "배송 요약",
-        "description": "전체 배송 목록 및 완료된 배송 건수를 요약 제공합니다.",
-        "tags": ["summary", "report"],
-        "examples": [
-          "오늘 완료된 배송 몇 건이야?",
-          "전체 배송 현황 요약"
-        ],
-        "inputModes": ["text/plain"],
-        "outputModes": ["text/plain"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    ],
-
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": false,
     "extensions": [
       {
         "uri": "https://Attager.ai/ext/tools/v1",
@@ -152,16 +94,70 @@
           ]
         }
       }
-    ],
-
-    "signatures": [
-      {
-        "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
-        "signature": "Izy6DJ-N1MJkUnvUnuTc5Y3jBB0RWFqCh11URlL5JpY",
-        "header": {
-          "kid": "registry-hs256-key-1"
-        }
-      }
     ]
-  }
+  },
+
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    }
+  },
+
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+
+  "skills": [
+    {
+      "id": "delivery_lookup",
+      "name": "배송 조회",
+      "description": "주문번호 또는 사용자 ID로 배송 상태를 조회할 수 있습니다.",
+      "tags": ["delivery", "tracking", "order"],
+      "examples": [
+        "ORD1001 주문 상태 알려줘",
+        "고객 1234의 배송 현황 보여줘"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["application/json"],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    },
+    {
+      "id": "delivery_summary",
+      "name": "배송 요약",
+      "description": "전체 배송 목록 및 완료된 배송 건수를 요약 제공합니다.",
+      "tags": ["summary", "report"],
+      "examples": [
+        "오늘 완료된 배송 몇 건이야?",
+        "전체 배송 현황 요약"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain"],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  ],
+
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
+      "signature": "Izy6DJ-N1MJkUnvUnuTc5Y3jBB0RWFqCh11URlL5JpY",
+      "header": {
+        "kid": "registry-hs256-key-1"
+      }
+    }
+  ]
 }

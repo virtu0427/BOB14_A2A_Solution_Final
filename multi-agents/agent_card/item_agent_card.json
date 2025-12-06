@@ -1,62 +1,20 @@
 {
-  "agent_id": "ItemAgent",
-  "card": {
-    "name": "ItemAgent",
-    "description": "Redis에 저장된 상품 정보를 조회하는 상품 관리 에이전트입니다.",
-    "protocolVersion": "1.0",
-    "url": "http://localhost:10002",
-    "preferredTransport": "JSONRPC",
-    "version": "1.0.0",
+  "name": "ItemAgent",
+  "description": "Redis에 저장된 상품 정보를 조회하는 상품 관리 에이전트입니다.",
+  "protocolVersion": "1.0",
+  "url": "http://localhost:10002",
+  "preferredTransport": "JSONRPC",
+  "version": "1.0.0",
 
-    "provider": {
-      "organization": "Attager.ai",
-      "url": "https://Attager.ai"
-    },
+  "provider": {
+    "organization": "Attager.ai",
+    "url": "https://Attager.ai"
+  },
 
-    "capabilities": {
-      "streaming": true,
-      "pushNotifications": true,
-      "stateTransitionHistory": false
-    },
-
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    },
-
-    "security": [
-      {
-        "bearerAuth": []
-      }
-    ],
-
-    "defaultInputModes": ["text/plain"],
-    "defaultOutputModes": ["text/plain"],
-
-    "skills": [
-      {
-        "id": "item_management",
-        "name": "상품 관리",
-        "description": "상품 상세 정보 조회 및 재고 추적을 수행합니다.",
-        "tags": ["item", "inventory", "product", "warehouse"],
-        "examples": [
-          "ITEM001 상품 상세 정보 알려줘",
-          "ITEM001 재고 수량 확인해줘",
-          "모든 창고의 ITEM002 재고 현황 보여줘"
-        ],
-        "inputModes": ["text/plain"],
-        "outputModes": ["application/json"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    ],
-
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": false,
     "extensions": [
       {
         "uri": "https://Attager.ai/ext/tools/v1",
@@ -119,16 +77,54 @@
           ]
         }
       }
-    ],
-
-    "signatures": [
-      {
-        "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
-        "signature": "item-agent-signature-placeholder-change-in-production",
-        "header": {
-          "kid": "registry-hs256-key-1"
-        }
-      }
     ]
-  }
+  },
+
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    }
+  },
+
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+
+  "skills": [
+    {
+      "id": "item_management",
+      "name": "상품 관리",
+      "description": "상품 상세 정보 조회 및 재고 추적을 수행합니다.",
+      "tags": ["item", "inventory", "product", "warehouse"],
+      "examples": [
+        "ITEM001 상품 상세 정보 알려줘",
+        "ITEM001 재고 수량 확인해줘",
+        "모든 창고의 ITEM002 재고 현황 보여줘"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["application/json"],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  ],
+
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
+      "signature": "item-agent-signature-placeholder-change-in-production",
+      "header": {
+        "kid": "registry-hs256-key-1"
+      }
+    }
+  ]
 }

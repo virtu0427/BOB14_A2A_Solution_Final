@@ -191,7 +191,9 @@ def create_agent():
         return jsonify({"error": 'WHITELIST_REJECTED', "message": wle}), 400
     if evaluator:
         try:
-            extension_error = evaluator._check_extension_limits(card.get('extension'))
+            capabilities = card.get("capabilities") or {}
+            extensions = capabilities.get("extensions")
+            extension_error = evaluator._check_extension_limits(extensions)
         except Exception:
             extension_error = None
         if isinstance(extension_error, str) and extension_error:

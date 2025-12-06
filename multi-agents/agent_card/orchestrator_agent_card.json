@@ -1,63 +1,20 @@
 {
-  "agent_id": "Orchestrator",
-  "card": {
-    "name": "Orchestrator",
-    "description": "Root Orchestrator Agent",
-    "protocolVersion": "1.0",
-    "url": "http://localhost:10000",
-    "preferredTransport": "JSONRPC",
-    "version": "1.0.0",
+  "name": "Orchestrator",
+  "description": "Root Orchestrator Agent",
+  "protocolVersion": "1.0",
+  "url": "http://localhost:10000",
+  "preferredTransport": "JSONRPC",
+  "version": "1.0.0",
 
-    "provider": {
-      "organization": "Attager.ai",
-      "url": "https://Attager.ai"
-    },
+  "provider": {
+    "organization": "Attager.ai",
+    "url": "https://Attager.ai"
+  },
 
-    "capabilities": {
-      "streaming": true,
-      "pushNotifications": true,
-      "stateTransitionHistory": true
-    },
-
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    },
-
-    "security": [
-      {
-        "bearerAuth": []
-      }
-    ],
-
-    "defaultInputModes": ["text/plain"],
-    "defaultOutputModes": ["text/plain"],
-
-    "skills": [
-      {
-        "id": "agent_coordination",
-        "name": "에이전트 조율",
-        "description": "사용자 요청을 분석하여 적절한 에이전트를 선택하고 작업을 위임한 후 결과를 사용자에게 반환합니다.",
-        "tags": ["orchestration", "coordination", "routing", "multi-agent"],
-        "examples": [
-          "주문 ORD1001의 배송 상태 확인해줘",
-          "차량 V001의 현재 위치는?",
-          "품질 검사 결과 요약해줘",
-          "사용 가능한 에이전트 목록 보여줘"
-        ],
-        "inputModes": ["text/plain"],
-        "outputModes": ["text/plain"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    ],
-
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": true,
     "extensions": [
       {
         "uri": "https://Attager.ai/ext/tools/v1",
@@ -128,16 +85,55 @@
           ]
         }
       }
-    ],
-
-    "signatures": [
-      {
-        "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
-        "signature": "orchestrator-signature-placeholder-change-in-production",
-        "header": {
-          "kid": "registry-hs256-key-1"
-        }
-      }
     ]
-  }
+  },
+
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    }
+  },
+
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+
+  "skills": [
+    {
+      "id": "agent_coordination",
+      "name": "에이전트 조율",
+      "description": "사용자 요청을 분석하여 적절한 에이전트를 선택하고 작업을 위임한 후 결과를 사용자에게 반환합니다.",
+      "tags": ["orchestration", "coordination", "routing", "multi-agent"],
+      "examples": [
+        "주문 ORD1001의 배송 상태 확인해줘",
+        "차량 V001의 현재 위치는?",
+        "품질 검사 결과 요약해줘",
+        "사용 가능한 에이전트 목록 보여줘"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain"],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  ],
+
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
+      "signature": "orchestrator-signature-placeholder-change-in-production",
+      "header": {
+        "kid": "registry-hs256-key-1"
+      }
+    }
+  ]
 }

@@ -1,61 +1,20 @@
 {
-  "agent_id": "CustomerAgent",
-  "card": {
-    "name": "CustomerAgent",
-    "description": "고객 기본 정보와 구매 내역을 조회하는 고객 관리 에이전트입니다.",
-    "protocolVersion": "1.0",
-    "url": "http://localhost:10006",
-    "preferredTransport": "JSONRPC",
-    "version": "1.0.0",
+  "name": "CustomerAgent",
+  "description": "고객 기본 정보와 구매 내역을 조회하는 고객 관리 에이전트입니다.",
+  "protocolVersion": "1.0",
+  "url": "http://localhost:10006",
+  "preferredTransport": "JSONRPC",
+  "version": "1.0.0",
 
-    "provider": {
-      "organization": "Attager.ai",
-      "url": "https://Attager.ai"
-    },
+  "provider": {
+    "organization": "Attager.ai",
+    "url": "https://Attager.ai"
+  },
 
-    "capabilities": {
-      "streaming": true,
-      "pushNotifications": true,
-      "stateTransitionHistory": false
-    },
-
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    },
-
-    "security": [
-      {
-        "bearerAuth": []
-      }
-    ],
-
-    "defaultInputModes": ["text/plain"],
-    "defaultOutputModes": ["text/plain"],
-
-    "skills": [
-      {
-        "id": "customer_management",
-        "name": "고객 관리",
-        "description": "고객 기본 정보와 구매 내역을 조회합니다.",
-        "tags": ["customer", "crm", "purchase", "history"],
-        "examples": [
-          "홍길동 기본 정보 알려줘",
-          "김철수 구매 내역 보여줘"
-        ],
-        "inputModes": ["text/plain"],
-        "outputModes": ["application/json"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    ],
-
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": false,
     "extensions": [
       {
         "uri": "https://Attager.ai/ext/tools/v1",
@@ -82,15 +41,53 @@
           ]
         }
       }
-    ],
-    "signatures": [
-      {
-        "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
-        "signature": "customer-agent-signature-placeholder-change-in-production",
-        "header": {
-          "kid": "registry-hs256-key-1"
-        }
-      }
     ]
-  }
+  },
+
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    }
+  },
+
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+
+  "skills": [
+    {
+      "id": "customer_management",
+      "name": "고객 관리",
+      "description": "고객 기본 정보와 구매 내역을 조회합니다.",
+      "tags": ["customer", "crm", "purchase", "history"],
+      "examples": [
+        "홍길동 기본 정보 알려줘",
+        "김철수 구매 내역 보여줘"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["application/json"],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  ],
+
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
+      "signature": "customer-agent-signature-placeholder-change-in-production",
+      "header": {
+        "kid": "registry-hs256-key-1"
+      }
+    }
+  ]
 }

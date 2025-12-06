@@ -45,17 +45,18 @@ except Exception:
 
     _load_dotenv_fallback()
 
-try:
-    from jsonschema import Draft7Validator, RefResolver, ValidationError
-except Exception:  # jsonschema 미설치 환경에서도 임포트 오류 방지
-    Draft7Validator = object  # type: ignore
-    RefResolver = object  # type: ignore
-    class ValidationError(Exception):  # type: ignore
-        pass
+    try: 
+        from jsonschema import Draft7Validator, RefResolver, ValidationError 
+    except Exception: 
+        Draft7Validator = object # type: ignore 
+        RefResolver = object # type: ignore 
+        class ValidationError(Exception): # type: ignore 
+            pass
+
 
 # --- 스키마 파일 및 크기 제한 설정 ---
 # 기본 최대 바이트(환경변수로 조정 가능)
-DEFAULT_MAX_AGENT_CARD_BYTES = int(os.environ.get("AGENT_CARD_MAX_BYTES", "2000"))  # 256 KiB
+DEFAULT_MAX_AGENT_CARD_BYTES = int(os.environ.get("AGENT_CARD_MAX_BYTES", "262144"))  # 256 KiB
 
 # 현재 파일과 같은 디렉터리에 위치한 스키마 파일 경로
 A2A_SCHEMA_PATH = Path(__file__).with_name("a2a.json")
@@ -69,7 +70,7 @@ class AgentCardParseResult:
     card: Dict[str, Any]
     name: Optional[str]
     url: Optional[str]
-    extension: Any
+    extensions: Any
     signatures: Any
 
 
@@ -149,14 +150,15 @@ class AgentCardSchema:
         """
         정책 검사 / 서명 모듈에서 사용할 필드만 정리해서 반환.
 
-        - name, url, extension: policy.py 로 전달
+        - name, url, extensions: policy.py 로 전달
         - signatures: 추후 JWS 검증/재서명용
         """
+        capabilities = card.get("capabilities") or {}
         return AgentCardParseResult(
             card=card,
             name=card.get("name"),
             url=card.get("url"),
-            extension=card.get("extension"),
+            extensions=card.get("extensions"),
             signatures=card.get("signatures"),
         )
 

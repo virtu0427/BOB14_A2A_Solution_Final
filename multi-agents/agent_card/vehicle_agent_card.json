@@ -1,63 +1,20 @@
 {
-  "agent_id": "VehicleAgent",
-  "card": {
-    "name": "VehicleAgent",
-    "description": "Redis에 저장된 차량 정보를 관리하는 배차/차량 운영 에이전트입니다.",
-    "protocolVersion": "1.0",
-    "url": "http://localhost:10004",
-    "preferredTransport": "JSONRPC",
-    "version": "1.0.0",
+  "name": "VehicleAgent",
+  "description": "Redis에 저장된 차량 정보를 관리하는 배차/차량 운영 에이전트입니다.",
+  "protocolVersion": "1.0",
+  "url": "http://localhost:10004",
+  "preferredTransport": "JSONRPC",
+  "version": "1.0.0",
 
-    "provider": {
-      "organization": "Attager.ai",
-      "url": "https://Attager.ai"
-    },
+  "provider": {
+    "organization": "Attager.ai",
+    "url": "https://Attager.ai"
+  },
 
-    "capabilities": {
-      "streaming": true,
-      "pushNotifications": true,
-      "stateTransitionHistory": false
-    },
-
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    },
-
-    "security": [
-      {
-        "bearerAuth": []
-      }
-    ],
-
-    "defaultInputModes": ["text/plain"],
-    "defaultOutputModes": ["text/plain"],
-
-    "skills": [
-      {
-        "id": "vehicle_management",
-        "name": "차량 관리",
-        "description": "차량 가용 현황, 상태 조회, 정비 스케줄, 적재 용량, 최적 차량 추천 등을 수행합니다.",
-        "tags": ["vehicle", "fleet", "dispatch", "maintenance", "logistics"],
-        "examples": [
-          "전체 차량 가용 현황 알려줘",
-          "VEH001 차량 상태 조회해줘",
-          "현재 정비 중인 차량 목록 보여줘",
-          "5톤 이상 운행 가능한 차량 추천해줘"
-        ],
-        "inputModes": ["text/plain"],
-        "outputModes": ["application/json"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    ],
-
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": false,
     "extensions": [
       {
         "uri": "https://Attager.ai/ext/tools/v1",
@@ -201,16 +158,61 @@
           ]
         }
       }
-    ],
-
-    "signatures": [
-      {
-        "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
-        "signature": "vehicle-agent-signature-placeholder-change-in-production",
-        "header": {
-          "kid": "registry-hs256-key-1"
-        }
-      }
     ]
-  }
+  },
+
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    }
+  },
+
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+
+  "skills": [
+    {
+      "id": "vehicle_management",
+      "name": "차량 관리",
+      "description": "차량 가용 현황, 상태 조회, 정비 스케줄, 적재 용량, 최적 차량 추천 등을 수행합니다.",
+      "tags": [
+        "vehicle",
+        "fleet",
+        "dispatch",
+        "maintenance",
+        "logistics"
+      ],
+      "examples": [
+        "전체 차량 가용 현황 알려줘",
+        "VEH001 차량 상태 조회해줘",
+        "현재 정비 중인 차량 목록 보여줘",
+        "5톤 이상 운행 가능한 차량 추천해줘"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["application/json"],
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    }
+  ],
+
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
+      "signature": "vehicle-agent-signature-placeholder-change-in-production",
+      "header": {
+        "kid": "registry-hs256-key-1"
+      }
+    }
+  ]
 }

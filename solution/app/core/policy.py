@@ -137,7 +137,9 @@ class PolicyEvaluator:
         if whitelist_error:
             return {"status": "error", "code": 400, "message": whitelist_error}
 
-        extension_error = self._check_extension_limits(card.get("extension"))
+        capabilities = card.get("capabilities") or {}
+        extensions = capabilities.get("extensions")
+        extension_error = self._check_extension_limits(extensions)
         if extension_error:
             return {"status": "error", "code": 400, "message": extension_error}
 
@@ -165,9 +167,9 @@ class PolicyEvaluator:
             if status == "deleted":
                 continue
             if target_name and name and name == target_name:
-                return "?? name ?? ??? ????? ?? ?????."
+                return "동일한 name을 가진 에이전트 카드가 이미 존재합니다."
             if target_url and url and url == target_url:
-                return "?? url ? ??? ????? ?? ?????."
+                return "동일한 url을 가진 에이전트 카드가 이미 존재합니다."
         return None
 
     def _check_whitelist(self, card: Dict[str, Any]) -> Optional[str]:
@@ -175,7 +177,10 @@ class PolicyEvaluator:
         card_url = card.get("url")
         if card_url:
             uris.append(card_url)
-        uris.extend(self._iter_extension_uris(card.get("extension")))
+
+        capabilities = card.get("capabilities") or {}
+        extensions = capabilities.get("extensions")
+        uris.extend(self._iter_extension_uris(extensions))
         seen = set()
         for uri in uris:
             if not uri or uri in seen:
