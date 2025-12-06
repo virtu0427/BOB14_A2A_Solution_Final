@@ -5,6 +5,536 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>A2A Observability Dashboard</title>
     <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+    />
+    <style>
+      /* Dashboard specific overrides for new layout */
+      .dashboard-layout {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        grid-template-rows: 1.4fr 1fr 0.9fr;
+        gap: 0.5rem;
+        height: calc(100vh - 58px - 1.5rem);
+        min-height: 500px;
+      }
+
+      .row-span-2 {
+        grid-row: span 2;
+      }
+
+      .dashboard-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-surface);
+        border-radius: var(--radius-sm);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+      }
+
+      .dashboard-card .card-header {
+        padding: 0.4rem 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(9, 14, 30, 0.4);
+        flex-shrink: 0;
+      }
+
+      .dashboard-card .card-header h2 {
+        margin: 0;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .dashboard-card .card-body {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .dashboard-card .card-body-padded {
+        padding: 0.5rem 0.75rem;
+      }
+
+      /* Graph specific */
+      .graph-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: rgba(9, 14, 30, 0.3);
+      }
+
+      .graph-legend {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .graph-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.55rem;
+        color: var(--text-secondary);
+      }
+
+      .graph-legend-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      .graph-legend-dot.active { background: var(--success); }
+      .graph-legend-dot.warning { background: var(--warning); }
+      .graph-legend-dot.inactive { background: var(--danger); }
+      .graph-legend-dot.external { background: #8b5cf6; }
+
+      /* Stats Grid */
+      .stats-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        height: 100%;
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.35rem;
+      }
+
+      .stat-card {
+        padding: 0.4rem 0.5rem;
+        border-radius: var(--radius-sm);
+        background: rgba(101, 209, 255, 0.06);
+        border: 1px solid rgba(101, 209, 255, 0.15);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .stat-card .label {
+        font-size: 0.55rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .stat-card .value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.2;
+      }
+
+      .stat-card .value.warning { color: var(--warning); }
+      .stat-card .value.info { color: var(--accent); }
+
+      /* Risk Meter */
+      .risk-meter {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.4rem 0.5rem;
+        background: rgba(9, 14, 30, 0.4);
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        min-height: 0;
+        justify-content: center;
+      }
+
+      .risk-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+
+      .risk-label {
+        font-size: 0.6rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .risk-score {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--success);
+      }
+
+      .risk-score.warning { color: var(--warning); }
+      .risk-score.danger { color: var(--danger); }
+
+      .risk-bar {
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+      }
+
+      .risk-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
+        transition: width 0.5s ease;
+      }
+
+      .risk-bar-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.5rem;
+        color: var(--text-secondary);
+        opacity: 0.7;
+        font-family: monospace;
+        text-transform: uppercase;
+      }
+
+      /* Chart Container */
+      .chart-container {
+        width: 100%;
+        height: 100%;
+        padding: 0.35rem;
+      }
+
+      .chart-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      /* Log Table */
+      .log-table-container {
+        position: absolute;
+        inset: 0;
+        overflow: auto;
+      }
+
+      /* 로그 테이블 스크롤바 스타일 */
+      .log-table-container::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      .log-table-container::-webkit-scrollbar-track {
+        background: rgba(30, 41, 59, 0.5);
+        border-radius: 3px;
+      }
+
+      .log-table-container::-webkit-scrollbar-thumb {
+        background: rgba(100, 116, 139, 0.6);
+        border-radius: 3px;
+      }
+
+      .log-table-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(148, 163, 184, 0.7);
+      }
+
+      .log-table-container::-webkit-scrollbar-corner {
+        background: transparent;
+      }
+
+      .log-table-mini {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.6rem;
+      }
+
+      .log-table-mini thead {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      .log-table-mini th {
+        background: rgba(9, 14, 30, 0.9);
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 0.35rem 0.5rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        white-space: nowrap;
+      }
+
+      .log-table-mini td {
+        padding: 0.3rem 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        color: var(--text-secondary);
+        vertical-align: middle;
+      }
+
+      .log-table-mini tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .log-table-mini tbody tr.violation {
+        background: rgba(255, 102, 102, 0.06);
+      }
+
+      .log-table-mini tbody tr.violation:hover {
+        background: rgba(255, 102, 102, 0.1);
+      }
+
+      .log-table-mini .col-time {
+        color: var(--text-secondary);
+        font-family: monospace;
+        font-size: 0.55rem;
+      }
+
+      .log-table-mini .col-type {
+        text-align: center;
+      }
+
+      .log-table-mini .col-agent {
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      .log-table-mini .col-policy {
+        color: var(--accent);
+      }
+
+      .log-table-mini .col-msg {
+        color: var(--text-primary);
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .log-table-mini .col-result {
+        text-align: center;
+      }
+
+      /* Type Badge */
+      .type-badge {
+        display: inline-block;
+        padding: 0.1rem 0.35rem;
+        border-radius: 3px;
+        font-size: 0.5rem;
+        font-weight: 600;
+      }
+
+      .type-badge.agent {
+        background: rgba(101, 209, 255, 0.15);
+        color: var(--accent);
+      }
+
+      .type-badge.registry {
+        background: rgba(168, 85, 247, 0.15);
+        color: #a855f7;
+      }
+
+      /* Verdict Badge */
+      .verdict-badge {
+        display: inline-block;
+        padding: 0.1rem 0.35rem;
+        border-radius: 3px;
+        font-size: 0.5rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .verdict-badge.pass {
+        background: rgba(78, 246, 178, 0.2);
+        color: var(--success);
+      }
+
+      .verdict-badge.blocked {
+        background: rgba(255, 102, 102, 0.2);
+        color: var(--danger);
+      }
+
+      .verdict-badge.other {
+        background: rgba(100, 116, 139, 0.2);
+        color: #94a3b8;
+      }
+
+      /* Log Count */
+      .log-count {
+        font-size: 0.55rem;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.06);
+        padding: 0.15rem 0.4rem;
+        border-radius: 999px;
+      }
+
+      /* New Log Animation */
+      .log-table-mini tbody tr.new-log {
+        animation: newLogPulse 1s ease-out;
+      }
+
+      @keyframes newLogPulse {
+        0% {
+          background: rgba(101, 209, 255, 0.3);
+        }
+        100% {
+          background: transparent;
+        }
+      }
+
+      .log-table-mini tbody tr.violation.new-log {
+        animation: newLogPulseViolation 1s ease-out;
+      }
+
+      @keyframes newLogPulseViolation {
+        0% {
+          background: rgba(255, 102, 102, 0.4);
+        }
+        100% {
+          background: rgba(255, 102, 102, 0.06);
+        }
+      }
+
+      /* Live Indicator for Logs */
+      .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.5rem;
+        color: var(--success);
+        padding: 0.1rem 0.35rem;
+        border-radius: 999px;
+        background: rgba(78, 246, 178, 0.1);
+        border: 1px solid rgba(78, 246, 178, 0.25);
+      }
+
+      .live-indicator::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--success);
+        animation: livePulse 1.5s infinite;
+      }
+
+      @keyframes livePulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.8); }
+      }
+
+      /* Header Actions */
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      .header-actions .pill {
+        padding: 0.15rem 0.5rem;
+        font-size: 0.6rem;
+      }
+
+      .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-secondary);
+        font-size: 0.6rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-icon:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+      }
+
+      .btn-icon .material-symbols-outlined {
+        font-size: 12px;
+      }
+
+      .btn-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        color: #031222;
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: opacity 0.2s;
+      }
+
+      .btn-link:hover {
+        opacity: 0.9;
+        color: #031222;
+      }
+
+      /* Pill Live Animation */
+      .pill-live {
+        background: rgba(78, 246, 178, 0.12);
+        border-color: rgba(78, 246, 178, 0.3);
+        color: var(--success);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+
+      /* Override content-area padding */
+      .content-area {
+        padding: 0.75rem;
+      }
+
+      /* Responsive */
+      @media (max-width: 1024px) {
+        .dashboard-layout {
+          grid-template-columns: repeat(6, 1fr);
+          grid-template-rows: auto;
+          height: auto;
+        }
+
+        .span-8 { grid-column: span 6; }
+        .span-4 { grid-column: span 3; }
+        .span-12 { grid-column: span 6; }
+        .row-span-2 { grid-row: span 1; }
+
+        .dashboard-card {
+          min-height: 250px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .dashboard-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .span-4, .span-6, .span-8, .span-12 {
+          grid-column: span 1;
+        }
+
+        .content-area {
+          padding: 0.5rem;
+        }
+      }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
     <script src="dashboard.js" defer></script>
@@ -14,55 +544,48 @@
       <header class="app-header">
         <div class="logo">A2A SECURE</div>
         <nav class="main-nav">
-          <a href="/dashboard" class="nav-link active">대시보드</a>
-          <a href="/agents" class="nav-link">에이전트</a>
-          <a href="/logs" class="nav-link">로그</a>
-          <a href="/rulesets" class="nav-link">룰셋</a>
+          <a href="dashboard.html" class="nav-link active">대시보드</a>
+          <a href="agents/agents.html" class="nav-link">에이전트</a>
+          <a href="logs/logs.html" class="nav-link">로그</a>
+          <a href="rulesets/rulesets.html" class="nav-link">룰셋</a>
         </nav>
       </header>
 
       <main class="content-area">
-        <div class="content-wrapper observability">
-          <header class="dashboard-hero">
-            <div>
-              <p class="eyebrow">Tyk 스타일 · 정책/토큰/보안 가시성</p>
-              <h1>A2A Observability Dashboard</h1>
-              <p class="lede">
-                API Gateway · JWT/JWS 서버 · IAM Policy Engine · Multi-Agents 전 구간의 트래픽/정책/토큰/보안 이벤트를 한눈에 모니터링합니다.
-              </p>
-            </div>
-            <div class="hero-actions">
-              <div class="filters">
-                <label>
-                  기간
-                  <select id="time-range">
-                    <option value="60">최근 60분</option>
-                    <option value="360">최근 6시간</option>
-                    <option value="1440">최근 24시간</option>
-                  </select>
-                </label>
-                <label>
-                  테넌트/고객사
-                  <input id="tenant-filter" type="text" placeholder="tenant 또는 client id" />
-                </label>
+        <div class="content-wrapper" style="max-width: none; padding: 0;">
+          <section class="dashboard-layout">
+            
+            <!-- Agent Graph (Span 8, Row Span 2) -->
+            <article class="dashboard-card span-8 row-span-2" data-card="flow">
+              <div class="card-header">
+                <h2>에이전트 그래프</h2>
+                <div class="header-actions">
+                  <span class="pill pill-live" id="flow-status">● 동기화 중…</span>
+                  <button class="btn-icon" id="refresh-flow">
+                    <span class="material-symbols-outlined">refresh</span>
+                    새로고침
+                  </button>
+                </div>
               </div>
-              <div class="hero-buttons">
-                <button class="btn-secondary" id="refresh-dashboard">새로고침</button>
-              </div>
-            </div>
-          </header>
-
-          <section class="kpi-grid">
-            <article class="kpi-card" id="kpi-active-clients">
-              <div class="kpi-title">Active A2A Clients</div>
-              <div class="kpi-value" data-field="value">--</div>
-              <div class="kpi-meta" data-field="meta">최근 15분 기준</div>
-            </article>
-            <article class="kpi-card" id="kpi-health">
-              <div class="kpi-title">JWT/JWS Server Health</div>
-              <div class="kpi-badges">
-                <span class="pill" data-field="jwt">JWT: --</span>
-                <span class="pill" data-field="jws">JWS: --</span>
+              <div class="card-body">
+                <div class="graph-container">
+                  <div id="graph-tooltip" class="graph-tooltip hidden"></div>
+                  <svg id="agent-flow-graph" role="presentation"></svg>
+                  <div class="graph-legend">
+                    <div class="graph-legend-item">
+                      <span class="graph-legend-dot active"></span> 활성
+                    </div>
+                    <div class="graph-legend-item">
+                      <span class="graph-legend-dot warning"></span> 주의
+                    </div>
+                    <div class="graph-legend-item">
+                      <span class="graph-legend-dot inactive"></span> 비활성
+                    </div>
+                    <div class="graph-legend-item">
+                      <span class="graph-legend-dot external"></span> 외부
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="kpi-meta" data-field="meta">지연/에러율 기반 상태</div>
             </article>
@@ -78,67 +601,104 @@
             </article>
           </section>
 
-          <section class="panel-grid">
-            <article class="widget dashboard-card span-6">
-              <div class="widget-header-with-button">
-                <div>
-                  <h2 class="widget-title">정책 결과 분포</h2>
-                  <p class="widget-subtitle">Allow / Deny / Quarantine / InvalidToken / RateLimit</p>
+            <!-- Stats (Span 4) -->
+            <article class="dashboard-card span-4" data-card="stats">
+              <div class="card-header">
+                <h2>운영 지표</h2>
+                <div class="header-actions">
+                  <button class="btn-icon" id="refresh-dashboard">
+                    <span class="material-symbols-outlined">refresh</span>
+                    전체 새로고침
+                  </button>
                 </div>
               </div>
-              <div class="card-body two-col">
-                <div class="chart-shell compact">
-                  <canvas id="policy-donut"></canvas>
+              <div class="card-body card-body-padded">
+                <div class="stats-content">
+                  <div class="stat-grid">
+                    <div class="stat-card">
+                      <span class="label">총 에이전트</span>
+                      <span class="value" id="total-agents">0</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="label">총 룰셋</span>
+                      <span class="value" id="total-rulesets">0</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="label">정책 위반 (24h)</span>
+                      <span class="value warning" id="total-violations">0</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="label">수집된 이벤트</span>
+                      <span class="value info" id="total-events">0</span>
+                    </div>
+                  </div>
+                  <div class="risk-meter" id="risk-indicator">
+                    <div class="risk-header">
+                      <span class="risk-label">위험 지수</span>
+                      <span class="risk-score" id="risk-score">정상</span>
+                    </div>
+                    <div class="risk-bar">
+                      <div class="risk-bar-fill" id="risk-bar-fill" style="width: 5%"></div>
+                    </div>
+                    <div class="risk-bar-labels">
+                      <span>Low</span>
+                      <span>Mid</span>
+                      <span>High</span>
+                    </div>
+                  </div>
                 </div>
                 <ul class="legend-list" id="policy-legend"></ul>
               </div>
             </article>
 
-            <article class="widget dashboard-card span-6">
-              <div class="widget-header-with-button">
-                <div>
-                  <h2 class="widget-title">요청 유형 분포</h2>
-                  <p class="widget-subtitle">TokenIssue / TokenVerify / PolicyLookup / API Invoke</p>
+            <!-- Traffic Chart (Span 4, Row Span 2 - 확장) -->
+            <article class="dashboard-card span-4 row-span-2" data-card="traffic">
+              <div class="card-header">
+                <h2>이벤트 활동</h2>
+                <div class="header-actions">
+                  <span class="pill" id="chart-range">최근 60분</span>
                 </div>
               </div>
-              <div class="card-body two-col">
-                <div class="chart-shell compact">
-                  <canvas id="request-donut"></canvas>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="events-chart"></canvas>
                 </div>
                 <ul class="legend-list" id="request-legend"></ul>
               </div>
             </article>
           </section>
 
-          <section class="panel-grid">
-            <article class="widget dashboard-card span-6">
-              <div class="widget-header-with-button">
-                <div>
-                  <h2 class="widget-title">룰셋 타입 분포</h2>
-                  <p class="widget-subtitle">prompt_validation / tool_validation / response_filtering</p>
-                </div>
-              </div>
-              <div class="card-body two-col">
-                <div class="chart-shell compact">
-                  <canvas id="ruleset-type-donut"></canvas>
-                </div>
-                <ul class="legend-list" id="ruleset-type-legend"></ul>
-              </div>
-            </article>
-
-            <article class="widget dashboard-card span-6">
-              <div class="widget-header-with-button">
-                <div>
-                  <h2 class="widget-title">룰셋 테넌트별 현황</h2>
-                  <p class="widget-subtitle">테넌트/그룹 기준 룰셋 개수</p>
+            <!-- Logs (Span 8 - 그래프와 동일 너비) -->
+            <article class="dashboard-card span-8" data-card="logs">
+              <div class="card-header">
+                <h2>최근 로그</h2>
+                <div class="header-actions">
+                  <span class="live-indicator">LIVE</span>
+                  <span class="log-count" id="log-count">0건</span>
+                  <a class="btn-link" href="logs/logs.html">
+                    로그 탐색기 열기
+                  </a>
                 </div>
               </div>
               <div class="card-body">
-                <div class="chart-shell small">
-                  <canvas id="ruleset-tenant-bar"></canvas>
+                <div class="log-table-container">
+                  <table class="log-table-mini">
+                    <thead>
+                      <tr>
+                        <th style="width: 120px;">시간</th>
+                        <th style="width: 60px;">유형</th>
+                        <th style="width: 140px;">에이전트/요청자</th>
+                        <th style="width: 90px;">정책/동작</th>
+                        <th>메시지</th>
+                        <th style="width: 60px;">결과</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-log-list"></tbody>
+                  </table>
                 </div>
               </div>
             </article>
+
           </section>
         </div>
       </main>
