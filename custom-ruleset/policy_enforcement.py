@@ -313,6 +313,18 @@ class PolicyEnforcementPlugin(BasePlugin):
                 "정책에 부합하는 요청을 다시 시도해주시기 바랍니다."
             )
             return self._create_llm_response(violation_message)
+        
+        # 정상 통과 로그 기록
+        self._send_log(
+            {
+                "source": "agent",
+                "agent_id": self.agent_id,
+                "policy_type": "prompt_validation",
+                "prompt": user_prompt[:100] + "..." if len(user_prompt) > 100 else user_prompt,
+                "verdict": "PASS",
+                "message": f"[{self.agent_id}] 프롬프트 검증 통과",
+            }
+        )
 
         
         incoming_token = self._extract_auth_token(callback_context, {})
@@ -375,6 +387,18 @@ class PolicyEnforcementPlugin(BasePlugin):
             print(f"[PolicyPlugin][{self.agent_id}] 툴 차단: {log_safe_violation}")
             return {"error": user_safe_message}
 
+        # 정상 통과 로그 기록
+        self._send_log(
+            {
+                "source": "agent",
+                "agent_id": self.agent_id,
+                "policy_type": "tool_validation",
+                "tool_name": tool_name,
+                "verdict": "PASS",
+                "message": f"[{self.agent_id}] 툴 검증 통과: {tool_name}",
+                "target_agent": tool_args.get("agent_name", ""),
+            }
+        )
         print(f"[PolicyPlugin] ✅ 승인됨({current_tenant}): {tool_name}")
         return None
 

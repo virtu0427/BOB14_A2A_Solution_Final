@@ -536,13 +536,15 @@ function buildGraphFromData(agents, logs) {
   nodeMap.set('registry', registryNode);
 
   // 에이전트 노드 추가
+  const agentNameToId = new Map();  // 이름 -> ID 매핑
   (Array.isArray(agents) ? agents : []).forEach(agent => {
     const agentId = agent.agent_id || agent.id;
     if (!agentId || nodeMap.has(agentId)) return;
 
+    const agentName = agent.name || agent.display_name || agentId;
     const node = {
       id: agentId,
-      name: agent.name || agent.display_name || agentId,
+      name: agentName,
       status: agent.status || 'unknown',
       type: 'agent',
       plugins: agent.plugins || [],
@@ -550,11 +552,47 @@ function buildGraphFromData(agents, logs) {
     };
     nodes.push(node);
     nodeMap.set(agentId, node);
+    
+    // 이름으로도 찾을 수 있도록 매핑 추가
+    agentNameToId.set(agentName.toLowerCase(), agentId);
+    // ID에서 에이전트 이름 추출 (예: "oneth.ai#agent:DeliveryAgent.v1.0.0" -> "deliveryagent")
+    const idParts = agentId.match(/[:#]([^.:#]+)/g);
+    if (idParts) {
+      idParts.forEach(part => {
+        const cleanPart = part.replace(/[:#]/g, '').toLowerCase();
+        if (cleanPart && cleanPart.length > 2) {
+          agentNameToId.set(cleanPart, agentId);
+        }
+      });
+    }
   });
+  
+  // 이름으로 에이전트 ID 찾는 헬퍼 함수
+  function findAgentId(name) {
+    if (!name) return null;
+    const nameLower = name.toLowerCase().replace(/\s+/g, '');
+    
+    // 정확히 일치하는 ID가 있으면 반환
+    if (nodeMap.has(name)) return name;
+    
+    // 이름 매핑에서 찾기
+    if (agentNameToId.has(nameLower)) return agentNameToId.get(nameLower);
+    
+    // 부분 일치로 찾기
+    for (const [key, id] of agentNameToId.entries()) {
+      if (key.includes(nameLower) || nameLower.includes(key)) {
+        return id;
+      }
+    }
+    
+    return null;
+  }
 
   // 로그에서 연결 관계와 메트릭 추출
   (Array.isArray(logs) ? logs : []).forEach(log => {
-    const agentId = log.agent_id || log.agentId;
+    const rawAgentId = log.agent_id || log.agentId;
+    // 에이전트 ID 매칭 (짧은 이름 -> 전체 ID)
+    const agentId = rawAgentId ? (findAgentId(rawAgentId) || rawAgentId) : null;
     const source = log.source;
     // verdict/status가 문자열이 아닐 수 있으므로 안전하게 처리
     const rawVerdict = log.verdict || log.status || '';
@@ -595,13 +633,19 @@ function buildGraphFromData(agents, logs) {
     }
 
     // 에이전트 간 통신 (caller-callee 관계가 있는 경우)
-    const calleeId = log.callee_id || log.target_agent;
-    if (agentId && calleeId && agentId !== calleeId) {
-      // callee 노드가 없으면 추가
+    const rawCalleeId = log.callee_id || log.target_agent;
+    if (agentId && rawCalleeId && agentId !== rawCalleeId) {
+      // 먼저 기존 에이전트에서 찾기 (이름 매칭)
+      let calleeId = findAgentId(rawCalleeId) || rawCalleeId;
+      
+      // 매칭된 ID가 소스와 같으면 스킵 (자기 자신 호출)
+      if (calleeId === agentId) return;
+      
+      // callee 노드가 없으면 외부 노드로 추가
       if (!nodeMap.has(calleeId)) {
         const calleeNode = {
           id: calleeId,
-          name: calleeId,
+          name: rawCalleeId,  // 원래 이름 표시
           status: 'external',
           type: 'external',
           metrics: { events: 0, violations: 0 }
@@ -1190,15 +1234,43 @@ async function loadNodeEvents(nodeId, nodeType) {
     const logsData = await response.json();
     const logs = Array.isArray(logsData) ? logsData : (logsData.logs || []);
 
+    // 노드 ID에서 검색 키워드 추출 (이름 기반 매칭용)
+    const nodeIdLower = nodeId.toLowerCase();
+    const nodeKeywords = [];
+    
+    // ID에서 에이전트 이름 부분 추출 (예: "oneth.ai#agent:DeliveryAgent.v1.0.0")
+    const idParts = nodeId.match(/[:#]([^.:#]+)/g);
+    if (idParts) {
+      idParts.forEach(part => {
+        const cleanPart = part.replace(/[:#]/g, '').toLowerCase();
+        if (cleanPart && cleanPart.length > 2) {
+          nodeKeywords.push(cleanPart);
+        }
+      });
+    }
+    nodeKeywords.push(nodeIdLower);
+
     // 해당 노드와 관련된 로그 필터링
     let relatedLogs;
     if (nodeType === 'registry') {
       relatedLogs = logs.filter(log => log.source === 'registry');
     } else {
       relatedLogs = logs.filter(log => {
-        const agentId = log.agent_id || log.agentId;
-        const calleeId = log.callee_id || log.target_agent;
-        return agentId === nodeId || calleeId === nodeId;
+        const agentId = (log.agent_id || log.agentId || '').toLowerCase();
+        const calleeId = (log.callee_id || log.target_agent || '').toLowerCase();
+        
+        // 정확히 일치
+        if (agentId === nodeIdLower || calleeId === nodeIdLower) return true;
+        
+        // 키워드 기반 매칭
+        for (const keyword of nodeKeywords) {
+          if (agentId.includes(keyword) || keyword.includes(agentId) ||
+              calleeId.includes(keyword) || keyword.includes(calleeId)) {
+            return true;
+          }
+        }
+        
+        return false;
       });
     }
 
