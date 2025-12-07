@@ -17,7 +17,7 @@
     "stateTransitionHistory": true,
     "extensions": [
       {
-        "uri": "https://Attager.ai/ext/tools/v1",
+        "uri": "https://localhost:10000/ext/tools/v1",
         "description": "Orchestrator가 사용하는 내부 도구 및 스키마 정의",
         "required": false,
         "params": {
