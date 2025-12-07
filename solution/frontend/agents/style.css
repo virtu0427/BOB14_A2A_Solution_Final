@@ -75,12 +75,6 @@
   outline: none;
 }
 
-/* 예전 input 전용 스타일은 제거
-.agent-sidebar .widget-actions input {
-  width: 100%;
-}
-*/
-
 .agent-list {
   list-style: none;
   margin: 0;
@@ -173,38 +167,6 @@
   text-align: right;
 }
 
-.plugins-panel {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-md);
-  padding: 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.plugin-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.plugin-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(101, 209, 255, 0.06);
-}
-
-.plugin-item strong {
-  display: block;
-  font-size: 0.95rem;
-}
-
 @media (max-width: 768px) {
   .overview-meta {
     align-items: flex-start;
@@ -219,4 +181,121 @@
     text-align: left;
     width: 100%;
   }
+}
+
+/* 에이전트 정보 패널 */
+.agent-info-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.agent-info-panel h3 {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.agent-info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.agent-info-grid .info-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.agent-info-grid .info-value {
+  color: #fff;
+  word-break: break-all;
+}
+
+.agent-info-grid .info-value a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.agent-info-grid .info-value a:hover {
+  text-decoration: underline;
+}
+
+/* 에이전트 기능 패널 */
+.capabilities-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.capabilities-panel h3 {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+/* 도구 목록 */
+.tools-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tool-item {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(101, 209, 255, 0.06);
+  transition: background 0.2s ease;
+}
+
+.tool-item:hover {
+  background: rgba(101, 209, 255, 0.1);
+}
+
+.tool-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tool-icon {
+  font-size: 1rem;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.tool-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.tool-skill-badge {
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: rgba(78, 246, 178, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(78, 246, 178, 0.3);
+}
+
+.tool-description {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.tools-list .empty-state {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }

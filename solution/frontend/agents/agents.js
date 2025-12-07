@@ -184,9 +184,9 @@ function renderAgentDetails(agent) {
   const subtitle = node.querySelector('.agent-subtitle');
   const statusChip = node.querySelector('.overview-meta .status-chip');
   const created = node.querySelector('[data-role="created"]');
-  const pluginList = node.querySelector('.plugin-list');
   const deleteButton = node.querySelector('#delete-agent-btn');
   const actionStatus = node.querySelector('#agent-action-status');
+  const infoGrid = node.querySelector('#agent-info-grid');
 
   if (title) {
     title.textContent = agent.name || agent.agent_id;
@@ -201,8 +201,16 @@ function renderAgentDetails(agent) {
   if (created) {
     created.textContent = formatDateTime(agent.created_at);
   }
-  if (pluginList) {
-    renderPluginList(pluginList, agent.plugins);
+  
+  // 에이전트 상세 정보 렌더링
+  if (infoGrid) {
+    renderAgentInfo(infoGrid, agent);
+  }
+  
+  // 에이전트 기능 (Tools) 렌더링
+  const toolsList = node.querySelector('#tools-list');
+  if (toolsList) {
+    renderAgentTools(toolsList, agent);
   }
 
   if (deleteButton) {
@@ -218,6 +226,102 @@ function renderAgentDetails(agent) {
   }
 
   container.appendChild(node);
+}
+
+function renderAgentInfo(container, agent) {
+  const infoItems = [];
+  
+  // ID
+  if (agent.agent_id) {
+    infoItems.push({ label: 'ID', value: agent.agent_id });
+  }
+  
+  // URL
+  if (agent.url) {
+    infoItems.push({ 
+      label: 'URL', 
+      value: `<a href="${agent.url}" target="_blank">${agent.url}</a>` 
+    });
+  }
+  
+  // 버전
+  if (agent.version) {
+    infoItems.push({ label: '버전', value: agent.version });
+  }
+  
+  // 프로토콜 버전
+  if (agent.protocolVersion) {
+    infoItems.push({ label: '프로토콜', value: `v${agent.protocolVersion}` });
+  }
+  
+  // 테넌트
+  if (agent.tenants && agent.tenants.length > 0) {
+    infoItems.push({ label: '테넌트', value: agent.tenants.join(', ') });
+  }
+  
+  // 업데이트 시간
+  if (agent.updated_at) {
+    infoItems.push({ 
+      label: '마지막 수정', 
+      value: new Date(agent.updated_at).toLocaleString() 
+    });
+  }
+  
+  container.innerHTML = infoItems.map(item => `
+    <span class="info-label">${item.label}</span>
+    <span class="info-value">${item.value}</span>
+  `).join('');
+}
+
+function renderAgentTools(listElement, agent) {
+  listElement.innerHTML = '';
+  
+  // capabilities.extensions에서 도구 추출
+  const tools = [];
+  const extensions = agent.capabilities?.extensions || [];
+  
+  extensions.forEach(ext => {
+    const extTools = ext.params?.tools || [];
+    extTools.forEach(tool => {
+      tools.push({
+        id: tool.tool_id || tool.name || '도구',
+        description: tool.description || '',
+        skill: tool.skill || ''
+      });
+    });
+  });
+  
+  // 기존 plugins도 확인
+  const plugins = agent.plugins || [];
+  plugins.forEach(plugin => {
+    const p = typeof plugin === 'string' ? { name: plugin } : plugin;
+    if (!tools.find(t => t.id === p.name)) {
+      tools.push({
+        id: p.name || '기능',
+        description: '',
+        skill: p.type || ''
+      });
+    }
+  });
+  
+  if (tools.length === 0) {
+    listElement.innerHTML = '<li class="empty-state">등록된 기능이 없습니다.</li>';
+    return;
+  }
+  
+  tools.forEach(tool => {
+    const item = document.createElement('li');
+    item.className = 'tool-item';
+    item.innerHTML = `
+      <div class="tool-header">
+        <span class="tool-icon material-symbols-outlined">function</span>
+        <strong class="tool-name">${tool.id}</strong>
+        ${tool.skill ? `<span class="tool-skill-badge">${tool.skill}</span>` : ''}
+      </div>
+      ${tool.description ? `<p class="tool-description">${tool.description}</p>` : ''}
+    `;
+    listElement.appendChild(item);
+  });
 }
 
 function renderPluginList(listElement, plugins = []) {
