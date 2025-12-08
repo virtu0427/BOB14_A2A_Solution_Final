@@ -104,7 +104,7 @@ class PolicyConfig:
             if network is not None
         )
         limits = ExtensionLimits(
-            max_depth=int(os.environ.get("EXTENSION_MAX_DEPTH", "6")),
+            max_depth=int(os.environ.get("EXTENSION_MAX_DEPTH", "10")),
             max_array_length=int(os.environ.get("EXTENSION_MAX_ARRAY_LENGTH", "64")),
             max_nodes=int(os.environ.get("EXTENSION_MAX_NODES", "2000")),
         )

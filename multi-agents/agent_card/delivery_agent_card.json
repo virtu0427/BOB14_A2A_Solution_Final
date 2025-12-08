@@ -3,7 +3,13 @@
   "description": "주문 배송 상태를 조회, 요약, 관리하는 Delivery Agent입니다.",
   "protocolVersion": "1.0",
   "url": "http://localhost:10001",
+  "preferredTransport": "JSONRPC",
   "version": "1.0.0",
+
+  "provider": {
+    "organization": "Attager.ai",
+    "url": "https://Attager.ai/"
+  },
 
   "capabilities": {
     "streaming": true,
@@ -91,6 +97,14 @@
     ]
   },
 
+  "securitySchemes": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    }
+  },
+  
   "security": [
     {
       "bearerAuth": []

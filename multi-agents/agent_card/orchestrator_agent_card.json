@@ -130,7 +130,7 @@
   "signatures": [
     {
       "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
-      "signature": "orchestrator-signature-placeholder-change-in-production",
+      "signature": "b3JjaGVzdHJhdG9yLXNpZ25hdHVyZS1wbGFjZWhvbGRlci1jaGFuZ2UtaW4tcHJvZHVjdGlvbg==",
       "header": {
         "kid": "registry-hs256-key-1"
       }
