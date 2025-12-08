@@ -5,7 +5,6 @@
   "url": "http://localhost:10002",
   "preferredTransport": "JSONRPC",
   "version": "1.0.0",
-  "not spec" : "hi",
 
   "provider": {
     "organization": "Attager.ai",
