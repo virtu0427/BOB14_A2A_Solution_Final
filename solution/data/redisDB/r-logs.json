@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "timestamp": "2025-12-07T15:42:39.470231+09:00",
+    "actor": "",
+    "method": "",
+    "status": 500,
+    "fail_stage": "스키마 검증",
+    "message": "스키마 검증 실패 : 잘못된 JSON 문법 (400 Bad Request)",
+    "source": "registry"
+  }
+]

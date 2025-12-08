@@ -84,7 +84,7 @@
   "signatures": [
     {
       "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
-      "signature": "customer-agent-signature-placeholder-change-in-production=",
+      "signature": "Y3VzdG9tZXItYWdlbnQtc2lnbmF0dXJlLXBsYWNlaG9sZGVyLWNoYW5nZS1pbi1wcm9kdWN0aW9u",
       "header": {
         "kid": "registry-hs256-key-1"
       }
