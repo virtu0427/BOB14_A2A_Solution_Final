@@ -209,7 +209,7 @@
   "signatures": [
     {
       "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
-      "signature": "vehicle-agent-signature-placeholder-change-in-production",
+      "signature": "dmVoaWNsZS1hZ2VudC1zaWduYXR1cmUtcGxhY2Vob2xkZXItY2hhbmdlLWluLXByb2R1Y3Rpb24=",
       "header": {
         "kid": "registry-hs256-key-1"
       }
