@@ -129,6 +129,7 @@ def append_log(
     capture_client_ip: bool = False,
     client_ip: str | None = None,
     fail_stage: str | None = None,
+    status: int | None = None,
 ):
     """플랫폼/공용 로그를 레지스트리 로그(r-logs.json)에 추가."""
     try:
@@ -158,7 +159,10 @@ def append_log(
         entry['actor'] = actor or ''
         method_code = entry.get('method') or _infer_method_from_message(message)
         entry['method'] = _normalize_method(method_code)
-        entry['status'] = 200 if ok else 500
+        if status is None:
+            entry['status'] = 200 if ok else 500
+        else:
+            entry['status'] = int(status)
         stage = fail_stage or entry.get('fail_stage') or _infer_fail_stage(message, ok)
         entry['fail_stage'] = stage
         entry['source'] = 'registry'

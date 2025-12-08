@@ -65,7 +65,7 @@ def require_jwt():
     if not auth:
         try:
             from .logging import append_log  # lazy to avoid circular import
-            append_log('인증 실패: Authorization 헤더 누락 (401 Unauthorized)', False)
+            append_log('인증 실패: Authorization 헤더 누락 (401 Unauthorized)', False, status=401)
         except Exception:
             pass
         return send_error(401, "TOKEN_MISSING", "Missing Authorization header")
@@ -73,7 +73,7 @@ def require_jwt():
     if len(parts) != 2 or parts[0] != "Bearer" or not parts[1]:
         try:
             from .logging import append_log
-            append_log('인증 실패: Authorization 형식 오류 (401 Unauthorized)', False)
+            append_log('인증 실패: Authorization 형식 오류 (401 Unauthorized)', False, status=401)
         except Exception:
             pass
         return send_error(401, "INVALID_AUTH_FORMAT", "Expected: Authorization: Bearer <token>")
@@ -91,13 +91,13 @@ def require_jwt():
     if status == 401 and data.get("detail") == "Invalid token":
         try:
             from .logging import append_log
-            append_log('신원 검증 실패 : 토큰 무효 (401 Unauthorized)', False)
+            append_log('신원 검증 실패 : 토큰 무효 (401 Unauthorized)', False, status=401)
         except Exception:
             pass
         return send_error(401, "INVALID_TOKEN", "Invalid or malformed token")
     try:
         from .logging import append_log
-        append_log(f'인증 실패: 토큰 서비스 오류 ({status})', False)
+        append_log(f'인증 실패: 토큰 서비스 오류 ({status})', False, status=status or 502)
     except Exception:
         pass
     return send_error(502, "TOKEN_SERVICE_ERROR", "Token service unavailable")
@@ -113,7 +113,7 @@ def require_admin():
     if not email:
         try:
             from .logging import append_log
-            append_log('권한 거부: 토큰 정보 없음 (401 Unauthorized)', False)
+            append_log('권한 거부: 토큰 정보 없음 (401 Unauthorized)', False, status=401)
         except Exception:
             pass
         return send_error(401, "INVALID_TOKEN", "Invalid or malformed token")
@@ -121,7 +121,7 @@ def require_admin():
     if _norm_email(email) != _ADMIN_EMAIL_NORM:
         try:
             from .logging import append_log
-            append_log('신원 검증 실패 : 관리자 권한 아님 (403 Forbidden)', False)
+            append_log('신원 검증 실패 : 관리자 권한 아님 (403 Forbidden)', False, status=403)
         except Exception:
             pass
         return send_error(403, "FORBIDDEN", "Admin privileges required")
