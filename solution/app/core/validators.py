@@ -2,7 +2,7 @@
 AgentCard 전용 스키마 검증 도구.
 
 1. 입력 크기 검사 (비정상적으로 큰 Agent Card 차단)
-2. a2a.json + AgentCard-policy.json 기반 JSON Schema 검증
+2. a2a.json 기반 JSON Schema 검증
 3. 정책 모듈 / 서명 모듈에서 사용할 핵심 필드 추출
 """
 
@@ -58,9 +58,8 @@ except Exception:
 # 기본 최대 바이트(환경변수로 조정 가능)
 DEFAULT_MAX_AGENT_CARD_BYTES = int(os.environ.get("AGENT_CARD_MAX_BYTES", "262144"))  # 256 KiB
 
-# 현재 파일과 같은 디렉터리에 위치한 스키마 파일 경로
-A2A_SCHEMA_PATH = Path(__file__).with_name("a2a.json")
-POLICY_SCHEMA_PATH = Path(__file__).with_name("AgentCard-policy.json")
+# 스키마 파일 경로 (solution/data/a2a.json)
+A2A_SCHEMA_PATH = Path(__file__).resolve().parents[2] / "data" / "a2a.json"
 
 
 @dataclass(frozen=True)
@@ -84,49 +83,46 @@ class AgentCardSchema:
     def __init__(
         self,
         base_schema_path: Path = A2A_SCHEMA_PATH,
-        policy_schema_path: Path = POLICY_SCHEMA_PATH,
         max_bytes: int = DEFAULT_MAX_AGENT_CARD_BYTES,
     ) -> None:
         self.base_schema_path = base_schema_path
-        self.policy_schema_path = policy_schema_path
         self.max_bytes = max_bytes
         self._validator = self._build_validator()
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def _load_schemas(base_path: str, policy_path: str) -> Dict[str, Any]:
+    def _load_schema(base_path: str) -> Dict[str, Any]:
         base = Path(base_path)
-        policy = Path(policy_path)
-        if not policy.exists():
-            raise FileNotFoundError(f"Policy schema not found: {policy}")
         if not base.exists():
             raise FileNotFoundError(f"A2A schema not found: {base}")
         with base.open("r", encoding="utf-8") as fp:
             base_schema = json.load(fp)
-        with policy.open("r", encoding="utf-8") as fp:
-            policy_schema = json.load(fp)
         return {
             "base": base_schema,
-            "policy": policy_schema,
-            "base_uri": policy.resolve().as_uri(),
+            "base_uri": base.resolve().as_uri(),
             "store": {
                 base.resolve().as_uri(): base_schema,
-                policy.resolve().as_uri(): policy_schema,
             },
         }
 
     def _build_validator(self) -> Draft7Validator:
         """JSON Schema Validator 인스턴스를 초기화."""
-        payload = self._load_schemas(
-            str(self.base_schema_path.resolve()),
-            str(self.policy_schema_path.resolve()),
-        )
-        resolver = RefResolver(
-            base_uri=payload["base_uri"],
-            referrer=payload["policy"],
-            store=payload["store"],
-        )
-        return Draft7Validator(payload["policy"], resolver=resolver)  # type: ignore[arg-type]
+        payload = self._load_schema(str(self.base_schema_path.resolve()))
+        base = payload["base"]
+
+        definitions = base.get("definitions") or base.get("$defs")
+        if not isinstance(definitions, dict) or "AgentCard" not in definitions:
+            raise AgentCardSchemaError("AgentCard schema not found in a2a.json")
+
+        agent_card_schema: Dict[str, Any] = {
+            "$schema": base.get(
+                "$schema", "http://json-schema.org/draft-07/schema#"
+            ),
+            "definitions": definitions,
+            "$ref": "#/definitions/AgentCard",
+        }
+
+        return Draft7Validator(agent_card_schema)  # type: ignore[arg-type]
 
     def ensure_size_limit(self, payload: Union[int, bytes, bytearray]) -> None:
         """Agent Card 원본 크기가 제한을 초과하지 않는지 확인."""

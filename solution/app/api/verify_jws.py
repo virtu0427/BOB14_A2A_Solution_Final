@@ -44,12 +44,12 @@ def jws_sign_card():
     body = request.get_json(silent=True) or {}
     card = body.get('card') if isinstance(body.get('card'), dict) else body
     if not isinstance(card, dict):
-        append_log('JWS 서명 실패 : card 필드 누락 (422 Unprocessable Entity)', False)
+        append_log('JWS 서명 실패 : card 필드 누락 (422 Unprocessable Entity)', False, status=422)
         return jsonify({"error": 'REQUIRED_FIELDS_MISSING', "errors": ['card is required']}), 422
 
     ok, errors = validate_card_basic(card)
     if not ok:
-        append_log('JWS 서명 실패 : 필수 필드 누락 (422 Unprocessable Entity)', False)
+        append_log('JWS 서명 실패 : 필수 필드 누락 (422 Unprocessable Entity)', False, status=422)
         return jsonify({"error": 'REQUIRED_FIELDS_MISSING', "errors": errors}), 422
 
     # jws-server 에 전달할 페이로드 구성
@@ -67,12 +67,12 @@ def jws_sign_card():
         r.raise_for_status()
         data = r.json()
     except Exception as exc:
-        append_log(f'JWS 서명 실패 : 서버 오류({exc})', False)
+        append_log(f'JWS 서명 실패 : 서버 오류({exc})', False, status=502)
         return jsonify({"error": 'JWS_SIGN_FAILED', "message": str(exc)}), 502
 
     token = data.get('jws')
     if not isinstance(token, str):
-        append_log('JWS 서명 실패 : 응답 토큰 없음', False)
+        append_log('JWS 서명 실패 : 응답 토큰 없음', False, status=502)
         return jsonify({"error": 'JWS_SIGN_FAILED', "message": 'missing token'}), 502
 
     # compact JWS 를 AgentCard signatures 형식으로 변환
@@ -80,7 +80,7 @@ def jws_sign_card():
         parts = token.split('.')
         protected_b64, _payload_b64, signature_b64 = parts[0], parts[1], parts[2]
     except Exception:
-        append_log('JWS 서명 실패 : 토큰 형식 오류', False)
+        append_log('JWS 서명 실패 : 토큰 형식 오류', False, status=502)
         return jsonify({"error": 'JWS_SIGN_FAILED', "message": 'invalid token format'}), 502
 
     kid = sign_payload['kid']
@@ -121,7 +121,7 @@ def jws_verify():
         status = r.status_code
         data = r.json() if r.content else {}
     except Exception as exc:
-        append_log(f'JWS 검증 실패 : 서버 오류({exc})', False)
+        append_log(f'JWS 검증 실패 : 서버 오류({exc})', False, status=502)
         return jsonify({"error": 'JWS_VERIFY_FAILED', "message": str(exc)}), 502
 
     # 표준화된 로그 메시지
@@ -142,13 +142,13 @@ def jws_verify():
     if status == 400:
         # 카드 해시 불일치
         if isinstance(detail, dict) and detail.get('code') == 'CARD_HASH_MISMATCH':
-            append_log('JWS 검증 실패 : 카드 해시 불일치 (400 Bad Request)', False)
+            append_log('JWS 검증 실패 : 카드 해시 불일치 (400 Bad Request)', False, status=400)
         else:
             # 일반적인 토큰 오류
-            append_log('JWS 검증 실패 : 토큰 무효 (400 Bad Request)', False)
+            append_log('JWS 검증 실패 : 토큰 무효 (400 Bad Request)', False, status=400)
         return jsonify(data), 400
 
-    append_log(f'JWS 검증 실패 : 서버 오류 ({status})', False)
+    append_log(f'JWS 검증 실패 : 서버 오류 ({status})', False, status=status)
     return jsonify({"error": 'JWS_VERIFY_FAILED', "status": status, "detail": detail}), 502
 
 
@@ -168,12 +168,12 @@ def jws_resign_card():
     body = request.get_json(silent=True) or {}
     card = body.get('card') if isinstance(body.get('card'), dict) else body
     if not isinstance(card, dict):
-        append_log('JWS 재서명 실패 : card 필드 누락 (422 Unprocessable Entity)', False)
+        append_log('JWS 재서명 실패 : card 필드 누락 (422 Unprocessable Entity)', False, status=422)
         return jsonify({"error": 'REQUIRED_FIELDS_MISSING', "errors": ['card is required']}), 422
 
     ok, errors = validate_card_basic(card)
     if not ok:
-        append_log('JWS 재서명 실패 : 필수 필드 누락 (422 Unprocessable Entity)', False)
+        append_log('JWS 재서명 실패 : 필수 필드 누락 (422 Unprocessable Entity)', False, status=422)
         return jsonify({"error": 'REQUIRED_FIELDS_MISSING', "errors": errors}), 422
 
     # 기존 서명 제거한 사본으로 해시가 계산되도록, 원본 card는 그대로 전달(서버에서 signatures 무시하고 해시 계산)
@@ -191,19 +191,19 @@ def jws_resign_card():
         r.raise_for_status()
         data = r.json()
     except Exception as exc:
-        append_log(f'JWS 재서명 실패 : 서버 오류({exc})', False)
+        append_log(f'JWS 재서명 실패 : 서버 오류({exc})', False, status=502)
         return jsonify({"error": 'JWS_SIGN_FAILED', "message": str(exc)}), 502
 
     token = data.get('jws')
     if not isinstance(token, str):
-        append_log('JWS 재서명 실패 : 응답 토큰 없음', False)
+        append_log('JWS 재서명 실패 : 응답 토큰 없음', False, status=502)
         return jsonify({"error": 'JWS_SIGN_FAILED', "message": 'missing token'}), 502
 
     # compact JWS 를 AgentCard signatures[0] 형태로 변환
     try:
         protected_b64, _payload_b64, signature_b64 = token.split('.')
     except Exception:
-        append_log('JWS 재서명 실패 : 토큰 형식 오류', False)
+        append_log('JWS 재서명 실패 : 토큰 형식 오류', False, status=502)
         return jsonify({"error": 'JWS_SIGN_FAILED', "message": 'invalid token format'}), 502
 
     kid = sign_payload['kid']

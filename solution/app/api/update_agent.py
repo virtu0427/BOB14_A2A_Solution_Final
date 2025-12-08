@@ -53,14 +53,14 @@ def update_agent():
     raw = request.get_data(as_text=True) or ''
     try:
         if len(raw.encode('utf-8')) > DEFAULT_MAX_AGENT_CARD_BYTES:
-            append_log('스키마 검증 실패 : 에이전트 최대 바이트 넘김 (413 Payload Too Larg)', False)
+            append_log('스키마 검증 실패 : 에이전트 최대 바이트 넘김 (413 Payload Too Larg)', False, status=413)
             return jsonify({"error": 'PAYLOAD_TOO_LARGE', "message": f"payload exceeds {DEFAULT_MAX_AGENT_CARD_BYTES} bytes"}), 413
     except Exception:
         pass
     try:
         body = json.loads(raw)
     except Exception:
-        append_log('스키마 검증 실패 : 잘못된 JSON 문법 (400 Bad Request)', False)
+        append_log('스키마 검증 실패 : 잘못된 JSON 문법 (400 Bad Request)', False, status=400)
         return jsonify({"error": 'BAD_JSON', "message": 'Invalid JSON'}), 400
 
     # --- card 추출 ---
@@ -68,7 +68,7 @@ def update_agent():
     if isinstance(body, dict):
         card = body.get('card') if isinstance(body.get('card'), dict) else body
     if not isinstance(card, dict):
-        append_log('스키마 검증 실패 :   card 필드 누락', False)
+        append_log('스키마 검증 실패 :   card 필드 누락', False, status=422)
         return jsonify({"error": 'REQUIRED_FIELDS_MISSING', "errors": ['card is required']}), 422
 
     # --- 대상 레코드 식별 ---
@@ -82,13 +82,13 @@ def update_agent():
             idx = i
             break
     if idx < 0:
-        append_log('리소스 없음 : 대상 에이전트를 찾을 수 없음 (404 Not Found)', False)
+        append_log('리소스 없음 : 대상 에이전트를 찾을 수 없음 (404 Not Found)', False, status=404)
         return jsonify({"error": 'NOT_FOUND', "message": 'agent not found'}), 404
 
     # --- 기본 스키마 검증 ---
     ok, errors = validate_card_basic_update(card)
     if not ok:
-        append_log('스키마 검증 실패 : 필수 필드 누락 (422 Unprocessable Entity)', False)
+        append_log('스키마 검증 실패 : 필수 필드 누락 (422 Unprocessable Entity)', False, status=422)
         return jsonify({"error": 'REQUIRED_FIELDS_MISSING', "errors": errors}), 422
 
     # --- signatures 구조 검증 (필요 시) ---
@@ -96,7 +96,7 @@ def update_agent():
     if isinstance(sigs, list) and sigs:
         sig_ok, sig_reason = verify_jws(card)
         if not sig_ok:
-            append_log('스키마 검증 실패 : 시그니처 필드의 JWS 불일치 (498 Invalid Token)', False)
+            append_log('스키마 검증 실패 : 시그니처 필드의 JWS 불일치 (498 Invalid Token)', False, status=498)
             return jsonify({"error": 'INVALID_TOKEN', "message": sig_reason or 'Invalid JWS signature'}), 498
 
     # --- 화이트리스트 및 중복 name/url 검증 ---
@@ -107,7 +107,7 @@ def update_agent():
     except Exception:
         wle = None
     if isinstance(wle, str) and wle:
-        append_log('정책 검사 실패 : 도메인/IP 화이트리스트 불일치 (400 Bad Request)', False)
+        append_log('정책 검사 실패 : 도메인/IP 화이트리스트 불일치 (400 Bad Request)', False, status=400)
         return jsonify({"error": 'WHITELIST_REJECTED', "message": wle}), 400
     if evaluator:
         try:
@@ -115,7 +115,7 @@ def update_agent():
         except Exception:
             extension_error = None
         if isinstance(extension_error, str) and extension_error:
-            append_log('정책 검사 실패 : extension 제한 초과 (400 Bad Request)', False)
+            append_log('정책 검사 실패 : extension 제한 초과 (400 Bad Request)', False, status=400)
             return jsonify({"error": 'EXTENSION_LIMIT_EXCEEDED', "message": extension_error}), 400
 
     # 자기 자신을 제외한 중복 검사
@@ -130,10 +130,10 @@ def update_agent():
         en = str(existing.get('name') or '').strip().lower()
         eu = str(existing.get('url') or '').strip().lower()
         if new_name and en == new_name:
-            append_log('정책 검사 실패 : 동일 name/url 이 존재 (409 Conflict)', False)
+            append_log('정책 검사 실패 : 동일 name/url 이 존재 (409 Conflict)', False, status=409)
             return jsonify({"error": 'CONFLICT', "message": '동일한 name 을 가진 에이전트가 이미 존재합니다.'}), 409
         if new_url and eu == new_url:
-            append_log('정책 검사 실패 : 동일 name/url 이 존재 (409 Conflict)', False)
+            append_log('정책 검사 실패 : 동일 name/url 이 존재 (409 Conflict)', False, status=409)
             return jsonify({"error": 'CONFLICT', "message": '동일한 url 을 가진 에이전트가 이미 존재합니다.'}), 409
 
     # --- jws-server 재서명 (이전 서명은 metadata 로 이동하지 않음) ---
@@ -161,10 +161,10 @@ def update_agent():
                 card['signatures'] = [sig_entry]
                 append_log('JWS 재서명 성공 : 시그니처 교체', True)
         else:
-            append_log(f'JWS 재서명 실패 : 서버 오류({r.status_code})', False)
+            append_log(f'JWS 재서명 실패 : 서버 오류({r.status_code})', False, status=r.status_code)
     except Exception:
         # 서명 서버 장애 시에도 업데이트 흐름은 계속 진행
-        append_log('JWS 재서명 실패 : 서버 오류', False)
+        append_log('JWS 재서명 실패 : 서버 오류', False, status=500)
 
     # --- 레코드 갱신 ---
     now_local = datetime.now(timezone(timedelta(hours=9))).isoformat()
