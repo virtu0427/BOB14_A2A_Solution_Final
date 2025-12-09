@@ -296,7 +296,7 @@ class PolicyEnforcementPlugin(BasePlugin):
     ) -> Optional[Any]:
         """Validate user prompts before the LLM is invoked."""
         self._capture_auth_from_context(callback_context)
-        replay_block = self._guard_soft_replay(callback_context or {}, llm_request)
+        replay_block = await self._guard_soft_replay(callback_context or {}, llm_request)
         if replay_block is not None:
             return replay_block
         self.fetch_policy(tool_context=callback_context)
@@ -329,11 +329,16 @@ class PolicyEnforcementPlugin(BasePlugin):
                     "message": f"[{self.agent_id}] 프롬프트 정책 위반: 사용자 프롬프트가 IAM 정책을 위반했습니다.",
                 }
             )
-            violation_message = (
-                f"[{self.agent_id}] 죄송합니다. 귀하의 요청이 시스템 정책에 위반되어 처리할 수 없습니다.\n\n"
-                "위반 사유: 시스템 프롬프트에서 정의한 보안 및 사용 정책을 준수하지 않는 요청입니다.\n"
-                "정책에 부합하는 요청을 다시 시도해주시기 바랍니다."
+            
+            # LLM을 사용하여 유동적인 위반 응답 생성
+            violation_message = await self._generate_violation_response(
+                violation_type="prompt_violation",
+                violation_reason="사용자 프롬프트가 시스템 보안 정책을 위반",
+                user_request=user_prompt,
+                additional_context={"agent_id": self.agent_id},
+                model_name=model_name,
             )
+            
             return self._create_llm_response(violation_message)
         
         # 정상 통과 로그 기록
@@ -375,12 +380,24 @@ class PolicyEnforcementPlugin(BasePlugin):
         current_tenant = self._extract_tenant_from_claims(claims)
 
         if not current_tenant or current_tenant.startswith("<"):
-            return {"error": "Access Denied: No valid tenant found."}
+            # LLM을 사용하여 유동적인 접근 거부 응답 생성
+            access_denied_message = await self._generate_violation_response(
+                violation_type="access_denied",
+                violation_reason="유효한 테넌트 정보 없음",
+                additional_context={"tenant": current_tenant},
+            )
+            return {"error": access_denied_message}
 
         request_policy = self._get_policy_for_tenant(current_tenant)
         
         if not request_policy:
-            return {"error": f"Access Denied: No policy found for tenant '{current_tenant}'."}
+            # LLM을 사용하여 유동적인 정책 없음 응답 생성
+            no_policy_message = await self._generate_violation_response(
+                violation_type="access_denied",
+                violation_reason=f"테넌트 '{current_tenant}'에 대한 정책 없음",
+                additional_context={"tenant": current_tenant},
+            )
+            return {"error": no_policy_message}
 
         tool_name = getattr(tool, "name", str(tool))
         
@@ -392,7 +409,6 @@ class PolicyEnforcementPlugin(BasePlugin):
         )
 
         if violation:
-            user_safe_message = self.sanitize_error_message(violation)
             log_safe_violation = self.sanitize_error_message(violation, audience="log")
             self._send_log(
                 {
@@ -407,6 +423,28 @@ class PolicyEnforcementPlugin(BasePlugin):
                 }
             )
             print(f"[PolicyPlugin][{self.agent_id}] 툴 차단: {log_safe_violation}")
+            
+            # 위반 유형 판별
+            target_agent = tool_args.get("agent_name", "")
+            if "not a valid agent" in violation.lower() or "target" in violation.lower():
+                violation_type = "target_not_allowed"
+            elif "not allowed" in violation.lower() or "not defined" in violation.lower():
+                violation_type = "tool_blocked"
+            else:
+                violation_type = "tool_blocked"
+            
+            # LLM을 사용하여 유동적인 위반 응답 생성
+            user_safe_message = await self._generate_violation_response(
+                violation_type=violation_type,
+                violation_reason=log_safe_violation,
+                additional_context={
+                    "tool_name": tool_name,
+                    "target_agent": target_agent,
+                    "tenant": current_tenant,
+                    "agent_id": self.agent_id,
+                },
+            )
+            
             return {"error": user_safe_message}
 
         # 정상 통과 로그 기록
@@ -424,7 +462,7 @@ class PolicyEnforcementPlugin(BasePlugin):
         print(f"[PolicyPlugin] ✅ 승인됨({current_tenant}): {tool_name}")
         return None
 
-    def _guard_soft_replay(self, callback_context: Any, llm_request: Any) -> Optional[Any]:
+    async def _guard_soft_replay(self, callback_context: Any, llm_request: Any) -> Optional[Any]:
         payload_hash = self._hash_llm_request(llm_request)
         if not payload_hash:
             return None
@@ -463,10 +501,16 @@ class PolicyEnforcementPlugin(BasePlugin):
                 "tool_name": "",
             }
         )
-        violation_message = (
-            "요청이 너무 짧은 시간 안에 반복되어 soft replay 정책에 의해 차단되었습니다.\n"
-            "잠시 후 다시 시도해주세요."
+        
+        # LLM을 사용하여 유동적인 리플레이 차단 응답 생성
+        user_prompt = self._extract_user_message(llm_request)
+        violation_message = await self._generate_violation_response(
+            violation_type="replay_blocked",
+            violation_reason=reason,
+            user_request=user_prompt,
+            additional_context={"agent_id": self.agent_id, "email": email},
         )
+        
         return self._create_llm_response(violation_message)
 
     # ... (나머지 helper 함수들은 그대로 두세요) ...
@@ -587,6 +631,131 @@ class PolicyEnforcementPlugin(BasePlugin):
         except Exception as exc:  # pragma: no cover - runtime model resolution issues
             print(f"[PolicyPlugin] 모델 로드 실패({name}): {exc}")
             return self._models.get(self._DEFAULT_MODEL)
+
+    async def _generate_violation_response(
+        self,
+        violation_type: str,
+        violation_reason: str,
+        user_request: str = "",
+        additional_context: Optional[Dict[str, Any]] = None,
+        model_name: Optional[str] = None,
+    ) -> str:
+        """
+        LLM을 사용하여 정책 위반 상황에 맞는 유동적인 응답을 생성합니다.
+        
+        Args:
+            violation_type: 위반 유형 (prompt_violation, tool_blocked, replay_blocked, access_denied 등)
+            violation_reason: 위반 사유 (내부용, 사용자에게 직접 노출하지 않음)
+            user_request: 사용자의 원래 요청 (있는 경우)
+            additional_context: 추가 컨텍스트 정보 (tool_name, target_agent 등)
+            model_name: 사용할 모델명 (기본값: DEFAULT_MODEL)
+        
+        Returns:
+            사용자 친화적인 위반 응답 메시지
+        """
+        # 기본 폴백 메시지들 (LLM 호출 실패 시 사용)
+        fallback_messages = {
+            "prompt_violation": (
+                "죄송합니다. 요청하신 내용이 시스템 보안 정책에 부합하지 않아 처리할 수 없습니다. "
+                "다른 방식으로 질문해 주시거나, 정책에 맞는 요청을 시도해 주세요."
+            ),
+            "tool_blocked": (
+                "죄송합니다. 요청하신 작업을 수행할 권한이 없습니다. "
+                "필요한 권한이 있는지 확인하시거나, 관리자에게 문의해 주세요."
+            ),
+            "replay_blocked": (
+                "동일한 요청이 너무 빠르게 반복되어 처리가 제한되었습니다. "
+                "잠시 후 다시 시도해 주세요."
+            ),
+            "access_denied": (
+                "접근이 거부되었습니다. 유효한 인증 정보가 필요합니다. "
+                "로그인 상태를 확인해 주세요."
+            ),
+            "target_not_allowed": (
+                "요청하신 대상 에이전트에 접근할 권한이 없습니다. "
+                "허용된 에이전트 목록을 확인해 주세요."
+            ),
+        }
+        
+        default_fallback = (
+            "죄송합니다. 요청을 처리하는 중 정책 제한으로 인해 진행할 수 없습니다. "
+            "다른 방식으로 시도하시거나 관리자에게 문의해 주세요."
+        )
+        
+        fallback = fallback_messages.get(violation_type, default_fallback)
+        
+        # Gemini API가 없으면 폴백 메시지 반환
+        if not self.gemini_api_key:
+            return fallback
+        
+        model = self._resolve_model(model_name)
+        if model is None:
+            return fallback
+        
+        # 추가 컨텍스트 정리
+        ctx = additional_context or {}
+        tool_name = ctx.get("tool_name", "")
+        target_agent = ctx.get("target_agent", "")
+        tenant = ctx.get("tenant", "")
+        
+        # LLM에게 전달할 프롬프트 구성
+        system_instruction = """당신은 AI 에이전트 시스템의 정책 안내 도우미입니다.
+사용자의 요청이 시스템 정책에 의해 제한되었을 때, 친절하고 이해하기 쉽게 상황을 설명해야 합니다.
+
+응답 작성 가이드라인:
+1. 정중하고 공감적인 어조를 유지하세요
+2. 왜 요청이 제한되었는지 간단히 설명하세요 (기술적 세부사항은 피하세요)
+3. 사용자가 다음에 어떻게 할 수 있는지 대안을 제시하세요
+4. 응답은 2-4문장으로 간결하게 작성하세요
+5. 보안에 민감한 정보(토큰, 내부 오류, 시스템 경로 등)는 절대 포함하지 마세요
+6. 한국어로 응답하세요"""
+
+        context_parts = []
+        context_parts.append(f"위반 유형: {violation_type}")
+        
+        if violation_type == "prompt_violation":
+            context_parts.append("상황: 사용자의 프롬프트가 시스템 보안 정책을 위반했습니다.")
+        elif violation_type == "tool_blocked":
+            context_parts.append(f"상황: '{tool_name}' 도구 사용이 현재 정책에서 허용되지 않았습니다.")
+        elif violation_type == "replay_blocked":
+            context_parts.append("상황: 동일한 요청이 짧은 시간 내에 반복 감지되어 차단되었습니다.")
+        elif violation_type == "access_denied":
+            context_parts.append("상황: 사용자의 인증 정보가 유효하지 않거나 누락되었습니다.")
+        elif violation_type == "target_not_allowed":
+            context_parts.append(f"상황: '{target_agent}' 에이전트에 대한 접근 권한이 없습니다.")
+        
+        if user_request:
+            # 사용자 요청은 처음 100자만 포함 (개인정보 보호)
+            truncated_request = user_request[:100] + "..." if len(user_request) > 100 else user_request
+            context_parts.append(f"사용자 요청 요약: {truncated_request}")
+        
+        context_str = "\n".join(context_parts)
+        
+        generation_prompt = f"""{system_instruction}
+
+---
+{context_str}
+---
+
+위 상황에 대해 사용자에게 전달할 친절한 안내 메시지를 작성해 주세요.
+응답은 안내 메시지만 포함하고, 다른 설명이나 메타 정보는 포함하지 마세요."""
+
+        try:
+            response = model.generate_content([generation_prompt])
+            generated_text = (response.text or "").strip()
+            
+            if generated_text and len(generated_text) > 10:
+                # 생성된 응답 검증 (민감 정보 포함 여부 체크)
+                sanitized = self._apply_secret_filters(generated_text)
+                print(f"[PolicyPlugin] LLM 위반 응답 생성 완료 ({violation_type})")
+                return sanitized
+            else:
+                print(f"[PolicyPlugin] LLM 응답이 너무 짧음, 폴백 사용")
+                return fallback
+                
+        except Exception as exc:
+            print(f"[PolicyPlugin] LLM 위반 응답 생성 실패: {exc}")
+            return fallback
 
     def _check_tool_rule(
         self,
