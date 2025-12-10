@@ -490,7 +490,8 @@ async function submitAddAgent(form) {
     requestBody.tenants = tenants;
   }
 
-  if (!verifiedToken) {
+  const adminToken = window.atsAuth?.getToken?.();
+  if (!adminToken) {
     updateModalStatus(status, '관리자 JWT 토큰을 먼저 확인하세요.', true);
     return;
   }
@@ -500,7 +501,7 @@ async function submitAddAgent(form) {
   try {
     const headers = {
       'Content-Type': 'application/json',
-      Authorization: verifiedToken,
+      Authorization: `Bearer ${adminToken}`,
     };
 
     const response = await fetch(`${API_BASE}/api/create-agent`, {

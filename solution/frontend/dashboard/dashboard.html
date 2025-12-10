@@ -6,9 +6,9 @@
     <title>ATS - 대시보드</title>
     <script>
       (function () {
-        const token = localStorage.getItem("atsAuthToken");
+        const token = localStorage.getItem('atsAuthToken');
         if (!token) {
-          window.location.replace("/login");
+          window.location.replace('/login');
         }
       })();
     </script>
@@ -175,41 +175,6 @@
         font-weight: 600;
         font-size: 0.85rem;
         color: #fff;
-      }
-
-      .panel-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-      }
-
-      .panel-action {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.2rem;
-        padding: 0.35rem 0.55rem;
-        font-size: 0.75rem;
-        border-radius: 6px;
-        border: 1px solid rgba(139, 92, 246, 0.5);
-        background: rgba(139, 92, 246, 0.08);
-        color: #e9d5ff;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-
-      .panel-action .material-symbols-outlined {
-        font-size: 1rem;
-      }
-
-      .panel-action:hover {
-        background: rgba(139, 92, 246, 0.16);
-        border-color: rgba(139, 92, 246, 0.7);
-        color: #fff;
-      }
-
-      .panel-action:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
       }
 
       .node-status-dot {
@@ -811,10 +776,10 @@
         }
       }
     </style>
-    <script src="auth.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
-    <script src="dashboard.js" defer></script>
+    <script src="/auth.js" defer></script>
+    <script src="/dashboard/dashboard.js" defer></script>
   </head>
   <body>
     <div class="app-container" data-page="dashboard">
@@ -827,10 +792,10 @@
           </div>
         </a>
         <nav class="main-nav">
-          <a href="dashboard.html" class="nav-link active">대시보드</a>
-          <a href="agents/agents.html" class="nav-link">에이전트</a>
-          <a href="logs/logs.html" class="nav-link">로그</a>
-          <a href="rulesets/rulesets.html" class="nav-link">룰셋</a>
+          <a href="/dashboard" class="nav-link active">대시보드</a>
+          <a href="/agents" class="nav-link">에이전트</a>
+          <a href="/logs" class="nav-link">로그</a>
+          <a href="/rulesets" class="nav-link">룰셋</a>
           <a href="#" class="nav-link" data-logout>로그아웃</a>
         </nav>
       </header>
@@ -891,15 +856,9 @@
                         <span class="node-status-dot" id="panel-status-dot"></span>
                         <span id="panel-node-name">노드 선택</span>
                       </div>
-                      <div class="panel-actions">
-                        <button class="panel-action" id="panel-hide-node" style="display:none;">
-                          <span class="material-symbols-outlined">visibility_off</span>
-                          숨기기
-                        </button>
-                        <button class="panel-close" id="panel-close">
-                          <span class="material-symbols-outlined">close</span>
-                        </button>
-                      </div>
+                      <button class="panel-close" id="panel-close">
+                        <span class="material-symbols-outlined">close</span>
+                      </button>
                     </div>
                     <div class="panel-content">
                       <div class="panel-section">
@@ -1025,9 +984,5 @@
         </div>
       </main>
     </div>
-    <script src="../auth.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
-    <script src="dashboard.js" defer></script>
   </body>
 </html>

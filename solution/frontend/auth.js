@@ -57,7 +57,6 @@
     emitTokenChange('')
   }
 
-  const API_BASE = window.location.origin
   const originalFetch = window.fetch.bind(window)
 
   window.fetch = (input, init = {}) => {
@@ -107,23 +106,6 @@
       }
     }
   })
-
-  const verifySession = async () => {
-    if (!getToken()) {
-      return
-    }
-    try {
-      const resp = await window.fetch(`${API_BASE}/api/verify-jwt`)
-      if (!resp.ok) {
-        throw new Error('invalid')
-      }
-    } catch (err) {
-      clearToken()
-      enforceAuth()
-    }
-  }
-
-  verifySession()
 
   const performLogout = () => {
     if (window.atsAuth) {

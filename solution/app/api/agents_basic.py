@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone, timedelta
 
 def _get_kst_now():
@@ -17,6 +18,12 @@ _POLICY_LIST_KEYS = [
     "tool_validation_rulesets",
     "response_filtering_rulesets",
 ]
+
+ENABLE_AGENT_ACCESS_LOGS = os.environ.get("ENABLE_AGENT_ACCESS_LOGS", "false").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 
 def _ensure_list(value):
@@ -117,12 +124,13 @@ def list_agents():
         jwt_info = getattr(g, "jwt", {}) or {}
         forwarded = request.headers.get("X-Forwarded-For")
         client_ip = forwarded.split(",")[0].strip() if forwarded else request.remote_addr
-        append_log(
-            f"Agent card list requested (IP: {client_ip or 'unknown'})",
-            ok=True,
-            capture_client_ip=True,
-            client_ip=client_ip,
-        )
+        if ENABLE_AGENT_ACCESS_LOGS:
+            append_log(
+                f"Agent card list requested (IP: {client_ip or 'unknown'})",
+                ok=True,
+                capture_client_ip=True,
+                client_ip=client_ip,
+            )
 
     is_admin = jwt_info.get("role") == "admin"
     token_tenants = jwt_info.get("tenants") or []
@@ -184,12 +192,13 @@ def list_agents_agent_view():
 
     normalized = [_normalize_agent(agent) for agent in filtered]
 
-    append_log(
-        f"Agent card list requested (IP: {client_ip or 'unknown'})",
-        ok=True,
-        capture_client_ip=True,
-        client_ip=client_ip,
-    )
+    if ENABLE_AGENT_ACCESS_LOGS:
+        append_log(
+            f"Agent card list requested (IP: {client_ip or 'unknown'})",
+            ok=True,
+            capture_client_ip=True,
+            client_ip=client_ip,
+        )
 
     resp = jsonify(normalized)
     resp.headers["X-Client-IP"] = client_ip or ""
@@ -212,12 +221,13 @@ def get_agent(agent_id):
             return auth_err
         forwarded = request.headers.get("X-Forwarded-For")
         client_ip = forwarded.split(",")[0].strip() if forwarded else request.remote_addr
-        append_log(
-            f"Agent card viewed: {agent_id} (IP: {client_ip or 'unknown'})",
-            ok=True,
-            capture_client_ip=True,
-            client_ip=client_ip,
-        )
+        if ENABLE_AGENT_ACCESS_LOGS:
+            append_log(
+                f"Agent card viewed: {agent_id} (IP: {client_ip or 'unknown'})",
+                ok=True,
+                capture_client_ip=True,
+                client_ip=client_ip,
+            )
 
     resp = jsonify(_normalize_agent(agent))
     if auth_header and client_ip:
@@ -254,12 +264,13 @@ def get_agent_agent_view(agent_id):
         ):
             return jsonify({"error": "FORBIDDEN", "message": "tenant mismatch"}), 403
 
-    append_log(
-        f"Agent card viewed: {agent_id} (IP: {client_ip or 'unknown'})",
-        ok=True,
-        capture_client_ip=True,
-        client_ip=client_ip,
-    )
+    if ENABLE_AGENT_ACCESS_LOGS:
+        append_log(
+            f"Agent card viewed: {agent_id} (IP: {client_ip or 'unknown'})",
+            ok=True,
+            capture_client_ip=True,
+            client_ip=client_ip,
+        )
 
     resp = jsonify(_normalize_agent(agent))
     resp.headers["X-Client-IP"] = client_ip or ""

@@ -106,7 +106,7 @@ services:
       - USERME_DIRECT_URL=http://jwt-server:8000/users/me
       - TENANT_API_URL=http://jwt-server:8000
     volumes:
-      - solution_data:/app/data
+      - ./solution/data:/app/data
     depends_on:
       - solution-redis
       - jwt-server
@@ -315,6 +315,5 @@ networks:
 volumes:
   redis-agents-data:
   redis-iam-data:
-  solution_data:
   solution_redis_data:
   jwt_redis_data:

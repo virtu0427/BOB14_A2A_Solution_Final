@@ -12,11 +12,6 @@ def auth_me():
     if err:
         return err
     sub = getattr(g, 'jwt', {}).get('sub')
-    try:
-        from ..core.logging import append_log
-        append_log(f'토큰 검증 성공(auth/me): {sub}', True)
-    except Exception:
-        pass
     return jsonify({"email": sub})
 
 
@@ -28,11 +23,6 @@ def verify_jwt():
     if err:
         return err
     sub = getattr(g, 'jwt', {}).get('sub')
-    try:
-        from ..core.logging import append_log
-        append_log(f'토큰 검증 성공(verify-jwt): {sub}', True)
-    except Exception:
-        pass
     return jsonify({"ok": True, "email": sub})
 
 

@@ -8,8 +8,13 @@ def _get_kst_now():
     kst = timezone(timedelta(hours=9))
     return datetime.now(kst)
 
-# --- 프로젝트 루트의 solution/data 디렉터리 경로 ---
-_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+# --- 프로젝트 루트의 solution/data 디렉터리 경로 (SOLUTION_DATA_ROOT 지원) ---
+DATA_ROOT_OVERRIDE = os.environ.get('SOLUTION_DATA_ROOT')
+_ROOT_DIR = (
+    os.path.abspath(DATA_ROOT_OVERRIDE)
+    if DATA_ROOT_OVERRIDE
+    else os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+)
 _DATA_DIR = os.path.join(_ROOT_DIR, 'data')
 _AGENTS_DIR = os.path.join(_DATA_DIR, 'redisDB')
 AGENTS_FILE = os.path.join(_AGENTS_DIR, 'agents.json')

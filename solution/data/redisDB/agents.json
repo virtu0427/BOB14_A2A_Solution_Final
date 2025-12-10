@@ -1,1 +1,126 @@
-[]
+[
+  {
+    "agent_id": "Attager.ai#agent:CustomerAgent.v1.0.0",
+    "etag": "W/\"1-f83ac7\"",
+    "versionID": 1,
+    "card": {
+      "name": "CustomerAgent",
+      "description": "고객 기본 정보와 구매 내역을 조회하는 고객 관리 에이전트입니다.",
+      "protocolVersion": "1.0",
+      "url": "http://localhost:10006",
+      "preferredTransport": "JSONRPC",
+      "version": "1.0.0",
+      "provider": {
+        "organization": "Attager.ai",
+        "url": "https://Attager.ai"
+      },
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": true,
+        "stateTransitionHistory": false,
+        "extensions": [
+          {
+            "uri": "https://localhost:10006/ext/tools/v1",
+            "description": "CustomerAgent가 사용하는 툴 및 인자 스키마 정의",
+            "required": false,
+            "params": {
+              "tools": [
+                {
+                  "tool_id": "query_customer",
+                  "skill": "customer_management",
+                  "description": "고객 이름으로 기본 정보와 구매 내역을 조회합니다.",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "조회할 고객 이름 (예: 홍길동, 김철수)"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "securitySchemes": {
+        "bearerAuth": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT"
+        }
+      },
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ],
+      "defaultInputModes": [
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "text/plain"
+      ],
+      "skills": [
+        {
+          "id": "customer_management",
+          "name": "고객 관리",
+          "description": "고객 기본 정보와 구매 내역을 조회합니다.",
+          "tags": [
+            "customer",
+            "crm",
+            "purchase",
+            "history"
+          ],
+          "examples": [
+            "홍길동 기본 정보 알려줘",
+            "김철수 구매 내역 보여줘"
+          ],
+          "inputModes": [
+            "text/plain"
+          ],
+          "outputModes": [
+            "application/json"
+          ],
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ]
+        }
+      ],
+      "signatures": [
+        {
+          "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
+          "signature": "Y3VzdG9tZXItYWdlbnQtc2lnbmF0dXJlLXBsYWNlaG9sZGVyLWNoYW5nZS1pbi1wcm9kdWN0aW9u",
+          "header": {
+            "kid": "registry-hs256-key-1"
+          }
+        }
+      ]
+    },
+    "status": "Active",
+    "tenants": [
+      "customer-service",
+      "logistics"
+    ],
+    "create_ts": "2025-12-10T20:55:43.647120+09:00",
+    "update_ts": "2025-12-10T20:55:43.647120+09:00",
+    "delete_ts": null,
+    "publisher_jws": [
+      {
+        "protected": "eyJhbGciOiJIUzI1NiIsImtpZCI6InJlZ2lzdHJ5LWhzMjU2LWtleS0xIiwidHlwIjoiSldUIn0",
+        "signature": "Y3VzdG9tZXItYWdlbnQtc2lnbmF0dXJlLXBsYWNlaG9sZGVyLWNoYW5nZS1pbi1wcm9kdWN0aW9u",
+        "header": {
+          "kid": "registry-hs256-key-1"
+        }
+      }
+    ],
+    "registrant": "admin@example.com"
+  }
+]
