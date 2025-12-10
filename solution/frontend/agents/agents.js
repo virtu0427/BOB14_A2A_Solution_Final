@@ -6,6 +6,18 @@ const state = {
   agentCache: new Map(),
 };
 
+function getAuthToken() {
+  try {
+    if (window.atsAuth?.getToken) {
+      return (window.atsAuth.getToken() || '').trim();
+    }
+    const stored = localStorage.getItem('atsAuthToken') || '';
+    return stored.trim();
+  } catch {
+    return '';
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   initialise();
 });
@@ -490,7 +502,8 @@ async function submitAddAgent(form) {
     requestBody.tenants = tenants;
   }
 
-  if (!verifiedToken) {
+  const token = getAuthToken();
+  if (!token) {
     updateModalStatus(status, '관리자 JWT 토큰을 먼저 확인하세요.', true);
     return;
   }
@@ -500,7 +513,7 @@ async function submitAddAgent(form) {
   try {
     const headers = {
       'Content-Type': 'application/json',
-      Authorization: verifiedToken,
+      Authorization: `Bearer ${token}`,
     };
 
     const response = await fetch(`${API_BASE}/api/create-agent`, {
