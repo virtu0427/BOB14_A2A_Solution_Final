@@ -103,6 +103,29 @@
       .graph-legend-dot.inactive { background: var(--danger); }
       .graph-legend-dot.external { background: #8b5cf6; }
 
+      .graph-legend-separator {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.08);
+        margin: 0.2rem 0;
+      }
+
+      .graph-legend-line {
+        display: inline-block;
+        width: 22px;
+        height: 3px;
+        border-radius: 99px;
+      }
+
+      .graph-legend-line.normal {
+        background: linear-gradient(90deg, rgba(101, 209, 255, 0.65), rgba(101, 209, 255, 0.3));
+        box-shadow: 0 0 0 1px rgba(101, 209, 255, 0.35);
+      }
+
+      .graph-legend-line.violation {
+        background: linear-gradient(90deg, rgba(255, 102, 102, 0.85), rgba(255, 102, 102, 0.45));
+        box-shadow: 0 0 0 1px rgba(255, 102, 102, 0.5);
+      }
+
       /* Graph Controls */
       .graph-controls {
         display: flex;
@@ -871,6 +894,13 @@
                     </div>
                     <div class="graph-legend-item">
                       <span class="graph-legend-dot external"></span> 외부
+                    </div>
+                    <div class="graph-legend-separator"></div>
+                    <div class="graph-legend-item">
+                      <span class="graph-legend-line normal"></span> 정상 흐름
+                    </div>
+                    <div class="graph-legend-item">
+                      <span class="graph-legend-line violation"></span> 위반/차단 흐름
                     </div>
                   </div>
                   
