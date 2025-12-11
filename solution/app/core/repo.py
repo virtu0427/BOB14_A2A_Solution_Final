@@ -3,6 +3,14 @@ import os
 import json
 from datetime import datetime, timezone, timedelta
 
+try:
+    import redis as _redis_module  # type: ignore
+except Exception:  # pragma: no cover - redis is optional
+    _redis_module = None
+
+_REDIS_CLIENT = None
+_REDIS_CLIENT_FAILED = False
+
 def _get_kst_now():
     """현재 한국 표준시(UTC+9)를 반환."""
     kst = timezone(timedelta(hours=9))
@@ -18,14 +26,12 @@ _ROOT_DIR = (
 _DATA_DIR = os.path.join(_ROOT_DIR, 'data')
 _AGENTS_DIR = os.path.join(_DATA_DIR, 'redisDB')
 AGENTS_FILE = os.path.join(_AGENTS_DIR, 'agents.json')
-# 개별 로그 파일 (에이전트/레지스트리 분리)
-AGENT_LOG_FILE = os.path.join(_AGENTS_DIR, 'a-logs.json')
 REGISTRY_LOG_FILE = os.path.join(_AGENTS_DIR, 'r-logs.json')
 RULESETS_FILE = os.path.join(_AGENTS_DIR, 'rulesets.json')
-_OLD_LOG_FILE = os.path.join(_DATA_DIR, 'log.json')
-_OLD_LOG_FILE_LEGACY = os.path.join(_AGENTS_DIR, 'logs.json')
 _OLD_RULESETS_FILE = os.path.join(_DATA_DIR, 'rulesets.json')
 REGISTRY_MAX_LOG_ENTRIES = int(os.environ.get('SOLUTION_MAX_LOG_ENTRIES', '500'))
+_AGENTS_REDIS_KEY = os.environ.get('AGENTS_REDIS_KEY', 'agents')
+_REGISTRY_LOGS_REDIS_KEY = os.environ.get('REGISTRY_LOGS_REDIS_KEY', 'r-logs')
 _CRUD_MAP = {'c': 'Create', 'r': 'Read', 'u': 'Update', 'd': 'Delete'}
 _CRUD_KEYWORDS = {
     'c': ['create', '생성', '등록', '추가'],
@@ -87,40 +93,73 @@ DEFAULT_RULESETS = [
 ]
 
 
+def _get_redis_client():
+    global _REDIS_CLIENT, _REDIS_CLIENT_FAILED
+    if _REDIS_CLIENT_FAILED:
+        return None
+    if _REDIS_CLIENT is not None:
+        return _REDIS_CLIENT
+    if _redis_module is None:
+        return None
+    redis_url = os.environ.get('REDIS_URL')
+    if not redis_url:
+        return None
+    try:
+        client = _redis_module.from_url(redis_url, decode_responses=True)
+    except Exception:
+        _REDIS_CLIENT_FAILED = True
+        return None
+    _REDIS_CLIENT = client
+    return _REDIS_CLIENT
+
+
+def _load_list_from_redis(key):
+    client = _get_redis_client()
+    if not client:
+        return None
+    try:
+        raw = client.get(key)
+        if raw is None:
+            return None
+        payload = json.loads(raw)
+        if isinstance(payload, list):
+            return payload
+    except Exception:
+        return None
+    return None
+
+
+def _save_list_to_redis(key, data):
+    client = _get_redis_client()
+    if not client:
+        return
+    if isinstance(data, list):
+        payload = data
+    else:
+        try:
+            payload = list(data)
+        except Exception:
+            payload = [data]
+    try:
+        client.set(key, json.dumps(payload, ensure_ascii=False))
+    except Exception:
+        pass
+
+
+def _filter_deleted_agents(data):
+    if not isinstance(data, list):
+        return []
+    return [a for a in data if not (isinstance(a, dict) and a.get("status") == "Deleted")]
+
+
 def _ensure_data_dir():
     os.makedirs(_DATA_DIR, exist_ok=True)
     os.makedirs(_AGENTS_DIR, exist_ok=True)  # data/redisDB 경로에 에이전트 저장
 
 
 def ensure_seed():
-    """data 디렉터리 및 초기 JSON 파일이 없으면 생성."""
+    """data 디렉터리 경로를 만든 뒤 룰셋 파일을 생성."""
     _ensure_data_dir()
-    if not os.path.exists(AGENTS_FILE):
-        with open(AGENTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
-    # 에이전트 로그 파일 초기화 (기존 위치에서 마이그레이션)
-    if not os.path.exists(AGENT_LOG_FILE):
-        try:
-            if os.path.exists(_OLD_LOG_FILE_LEGACY):
-                with open(_OLD_LOG_FILE_LEGACY, 'r', encoding='utf-8') as src:
-                    data = src.read()
-                with open(AGENT_LOG_FILE, 'w', encoding='utf-8') as dst:
-                    dst.write(data)
-            elif os.path.exists(_OLD_LOG_FILE):
-                with open(_OLD_LOG_FILE, 'r', encoding='utf-8') as src:
-                    data = src.read()
-                with open(AGENT_LOG_FILE, 'w', encoding='utf-8') as dst:
-                    dst.write(data)
-            else:
-                with open(AGENT_LOG_FILE, 'w', encoding='utf-8') as f:
-                    f.write('[]')
-        except Exception:
-            with open(AGENT_LOG_FILE, 'w', encoding='utf-8') as f:
-                f.write('[]')
-    # 레지스트리 로그 파일 초기화
-    if not os.path.exists(REGISTRY_LOG_FILE):
-        with open(REGISTRY_LOG_FILE, 'w', encoding='utf-8') as f:
-            f.write('[]')
     if not os.path.exists(RULESETS_FILE):
         try:
             if os.path.exists(_OLD_RULESETS_FILE):
@@ -153,14 +192,16 @@ def save_json(path: str, data):
 
 def load_agents():
     ensure_seed()
+    redis_data = _load_list_from_redis(_AGENTS_REDIS_KEY)
+    if redis_data is not None:
+        return _filter_deleted_agents(redis_data)
     data = load_json(AGENTS_FILE, [])
-    if isinstance(data, list):
-        data = [a for a in data if not (isinstance(a, dict) and a.get("status") == "Deleted")]
-    return data
+    return _filter_deleted_agents(data)
 
 
 def save_agents(data):
-    save_json(AGENTS_FILE, data)
+    if isinstance(data, list):
+        _save_list_to_redis(_AGENTS_REDIS_KEY, data)
 
 
 def load_logs():
@@ -186,20 +227,26 @@ def save_agent_logs(data):
     return None
 
 
+def _normalize_registry_logs(raw):
+    return [_normalize_registry_log_entry(entry) for entry in raw if isinstance(entry, dict)]
+
+
 def load_registry_logs():
     ensure_seed()
-    raw = load_json(REGISTRY_LOG_FILE, [])
-    normalized = [_normalize_registry_log_entry(e) for e in raw if isinstance(e, dict)]
-    if normalized != raw:
-        save_json(REGISTRY_LOG_FILE, normalized)
+    redis_raw = _load_list_from_redis(_REGISTRY_LOGS_REDIS_KEY)
+    from_redis = redis_raw is not None
+    raw = redis_raw if from_redis else load_json(REGISTRY_LOG_FILE, [])
+    normalized = _normalize_registry_logs(raw)
+    if from_redis:
+        if normalized != raw:
+            _save_list_to_redis(_REGISTRY_LOGS_REDIS_KEY, normalized)
+        return normalized
     return normalized
 
 
 def save_registry_logs(data):
-    normalized = []
-    for entry in data:
-        normalized.append(_normalize_registry_log_entry(entry))
-    save_json(REGISTRY_LOG_FILE, normalized)
+    normalized = _normalize_registry_logs(data)
+    _save_list_to_redis(_REGISTRY_LOGS_REDIS_KEY, normalized)
 
 def _infer_method(entry: dict) -> str:
     """method가 비어있을 때 메시지/동작 힌트로 CRUD 코드를 추론."""
