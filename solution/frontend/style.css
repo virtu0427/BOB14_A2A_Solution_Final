@@ -210,6 +210,30 @@ a:hover {
   transition: color 0.2s ease;
 }
 
+.nav-link[data-logout] {
+  color: var(--danger);
+  border: 1px solid rgba(255, 102, 102, 0.35);
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  height: 28px;
+  margin-left: 0.6rem;
+  align-self: center;
+  background: rgba(255, 102, 102, 0.08);
+  box-shadow: 0 0 0 0 rgba(255, 102, 102, 0.2);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.25s ease;
+}
+
+.nav-link[data-logout]:hover {
+  color: #ff8a8a;
+  border-color: rgba(255, 138, 138, 0.6);
+  background: rgba(255, 102, 102, 0.14);
+  box-shadow: 0 10px 22px rgba(255, 102, 102, 0.18);
+}
+
+.nav-link[data-logout]::after {
+  display: none;
+}
+
 .nav-link::after {
   content: "";
   position: absolute;
@@ -236,17 +260,20 @@ a:hover {
 
 .nav-token-exp {
   margin-left: 0.35rem;
-  padding: 0 0.6rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  width: 150px;
+  height: 28px;
+  padding: 0 0.4rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-secondary);
-  font-size: 0.85rem;
-  line-height: 1.2;
+  font-size: 0.9rem;
+  line-height: 28px;
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
+  justify-content: center;
   white-space: nowrap;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  align-self: center;
 }
 
 .nav-token-exp.warn {

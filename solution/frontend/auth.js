@@ -5,7 +5,7 @@
   window.__atsAuthHelperInstalled = true
 
   const STORAGE_KEY = 'atsAuthToken'
-  const TOKEN_EXP_UPDATE_MS = 5000
+  const TOKEN_EXP_UPDATE_MS = 1000
 
   const safeStorage = {
     get(key) {
@@ -175,6 +175,17 @@
 
   enforceAuth()
   // exp 뱃지 주기적 업데이트
+  const formatRemaining = (seconds) => {
+    const safe = Math.max(0, Math.floor(seconds))
+    const hours = Math.floor(safe / 3600)
+    const minutes = Math.floor((safe % 3600) / 60)
+    const secs = safe % 60
+    if (hours > 0) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
+
   const updateTokenExpBadges = () => {
     const token = getToken()
     const payload = decodeJwtPayload(token)
@@ -183,22 +194,13 @@
     let label = ''
     let warn = false
     if (exp) {
-      const expDate = new Date(exp * 1000)
-      const expText = expDate.toLocaleString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      })
-      if (nowSec >= exp) {
-        label = '만료됨'
+      const remaining = exp - nowSec
+      if (remaining <= 0) {
+        label = '자동 로그아웃됨'
         warn = true
       } else {
-        label = `만료 시각 ${expText}`
-        warn = exp - nowSec <= 60
+        label = `자동 로그아웃 ${formatRemaining(remaining)}`
+        warn = remaining <= 60
       }
     }
     document.querySelectorAll('[data-token-exp]').forEach((el) => {

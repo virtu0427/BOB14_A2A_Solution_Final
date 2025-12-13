@@ -4,6 +4,28 @@ from flask import jsonify, request
 
 from . import api_bp
 from ..core import repo
+from ..core.tenants import TENANT_CHOICES
+
+
+def _get_group_count() -> int:
+    """UI와 동일한 로직으로 그룹 개수를 계산한다."""
+    try:
+        from .rulesets_api import _load_tenant_rulesets  # 지연 import로 순환 참조 회피
+    except Exception:
+        return 0
+
+    try:
+        _, groups = _load_tenant_rulesets()
+        if groups is not None:
+            return len(groups)
+    except Exception:
+        pass
+
+    # 테넌트 API 실패 시 rulesets_api와 동일하게 TENANT_CHOICES를 fallback으로 사용
+    try:
+        return len(TENANT_CHOICES)
+    except Exception:
+        return 0
 
 
 def _normalize_log_entry(entry):
@@ -113,6 +135,7 @@ def get_stats():
         {
             "total_agents": len(agents),
             "total_rulesets": len(rulesets),
+            "total_groups": _get_group_count(),
             "total_events": len(logs),
             "recent_violations": recent_violations,
         }

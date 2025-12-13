@@ -98,7 +98,7 @@ async function loadDashboardStats() {
     const stats = await response.json();
 
     updateStatCard('total-agents', stats.total_agents ?? 0);
-    updateStatCard('total-rulesets', stats.total_rulesets ?? 0);
+    updateStatCard('total-groups', stats.total_groups ?? stats.total_rulesets ?? 0);
     updateStatCard('total-violations', stats.recent_violations ?? 0);
     updateStatCard('total-events', stats.total_events ?? 0);
 
@@ -892,13 +892,20 @@ function renderAgentFlowGraph(flow) {
         })
     );
 
+  const getGlowRadius = (d) => {
+    const baseSize = d.type === 'registry' ? 40 : 28;
+    return baseSize + Math.min(10, Math.log((d.metrics?.events || 0) + 1) * 5);
+  };
+
+  const getCoreRadius = (d) => {
+    const baseSize = d.type === 'registry' ? 22 : 14;
+    return baseSize + Math.min(6, Math.log((d.metrics?.events || 0) + 1) * 3);
+  };
+
   // Outer glow circle (pulse animation for active)
   nodeGroup
     .append('circle')
-    .attr('r', (d) => {
-      const baseSize = d.type === 'registry' ? 40 : 28;
-      return baseSize + Math.min(10, Math.log((d.metrics?.events || 0) + 1) * 5);
-    })
+    .attr('r', (d) => getGlowRadius(d))
     .attr('fill', (d) => getNodeColor(d.status, d.type))
     .attr('opacity', (d) => d.type === 'registry' ? 0.25 : 0.15)
     .attr('class', (d) => `node-glow status-${(d.status || 'unknown').toLowerCase()}`);
@@ -906,10 +913,7 @@ function renderAgentFlowGraph(flow) {
   // Core circle
   nodeGroup
     .append('circle')
-    .attr('r', (d) => {
-      const baseSize = d.type === 'registry' ? 22 : 14;
-      return baseSize + Math.min(6, Math.log((d.metrics?.events || 0) + 1) * 3);
-    })
+    .attr('r', (d) => getCoreRadius(d))
     .attr('fill', (d) => getNodeColor(d.status, d.type))
     .attr('stroke', (d) => d.type === 'registry' ? '#fff' : 'rgba(255, 255, 255, 0.8)')
     .attr('stroke-width', (d) => d.type === 'registry' ? 3 : 2)
@@ -931,9 +935,21 @@ function renderAgentFlowGraph(flow) {
   // Status indicator
   nodeGroup
     .append('circle')
-    .attr('r', 4)
-    .attr('cx', (d) => 10 + Math.min(4, Math.log((d.metrics?.events || 0) + 1) * 2))
-    .attr('cy', (d) => -10 - Math.min(4, Math.log((d.metrics?.events || 0) + 1) * 2))
+    .attr('r', (d) => 4 + Math.min(2, Math.log((d.metrics?.events || 0) + 1)))
+    .attr('cx', (d) => {
+      const statusRadius = 4 + Math.min(2, Math.log((d.metrics?.events || 0) + 1));
+      const offset = 0; // 더 이상 튀어나오지 않도록 여백 제거
+      const radius = getCoreRadius(d) + offset;
+      const angle = -45 * (Math.PI / 180);
+      return Math.cos(angle) * radius;
+    })
+    .attr('cy', (d) => {
+      const statusRadius = 4 + Math.min(2, Math.log((d.metrics?.events || 0) + 1));
+      const offset = 0;
+      const radius = getCoreRadius(d) + offset;
+      const angle = -45 * (Math.PI / 180);
+      return Math.sin(angle) * radius;
+    })
     .attr('fill', (d) => {
       if (d.metrics?.violations > 0) return '#ff6666';
       if (d.status === 'warning') return '#ffaa33';
@@ -943,9 +959,11 @@ function renderAgentFlowGraph(flow) {
     .attr('stroke-width', 2);
 
   // Labels
+  const getLabelOffset = (d) => getCoreRadius(d) + 12;
+
   nodeGroup
     .append('text')
-    .attr('dy', (d) => 30 + Math.min(6, Math.log((d.metrics?.events || 0) + 1) * 3))
+    .attr('dy', (d) => getLabelOffset(d))
     .attr('text-anchor', 'middle')
     .attr('class', 'node-label')
     .attr('fill', 'rgba(255, 255, 255, 0.9)')
@@ -960,8 +978,12 @@ function renderAgentFlowGraph(flow) {
   nodeGroup
     .filter((d) => (d.metrics?.events || 0) > 0)
     .append('text')
-    .attr('dy', -2)
+    .attr('class', 'node-event-count')
+    .attr('x', 0)
+    .attr('y', 0)
     .attr('text-anchor', 'middle')
+    .attr('alignment-baseline', 'middle')
+    .attr('dominant-baseline', 'middle')
     .attr('fill', '#fff')
     .attr('font-size', '9px')
     .attr('font-weight', 'bold')

@@ -111,6 +111,15 @@
       .graph-legend-dot.inactive { background: var(--danger); }
       .graph-legend-dot.external { background: #8b5cf6; }
 
+      .graph-legend-line {
+        width: 18px;
+        height: 3px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+      .graph-legend-line.normal { background: rgba(101, 209, 255, 0.7); }
+      .graph-legend-line.violation { background: rgba(255, 102, 102, 0.8); }
+
       /* Graph Controls */
       .graph-controls {
         display: flex;
@@ -839,16 +848,22 @@
                     <div class="graph-legend-item">
                       <span class="graph-legend-dot active"></span> 활성
                     </div>
-                    <div class="graph-legend-item">
-                      <span class="graph-legend-dot warning"></span> 주의
-                    </div>
-                    <div class="graph-legend-item">
-                      <span class="graph-legend-dot inactive"></span> 비활성
-                    </div>
-                    <div class="graph-legend-item">
-                      <span class="graph-legend-dot external"></span> 외부
-                    </div>
-                  </div>
+              <div class="graph-legend-item">
+                <span class="graph-legend-dot warning"></span> 주의
+              </div>
+              <div class="graph-legend-item">
+                <span class="graph-legend-dot inactive"></span> 비활성
+              </div>
+              <div class="graph-legend-item">
+                <span class="graph-legend-dot external"></span> 외부
+              </div>
+              <div class="graph-legend-item">
+                <span class="graph-legend-line normal"></span> 일반 통신
+              </div>
+              <div class="graph-legend-item">
+                <span class="graph-legend-line violation"></span> 위반 통신
+              </div>
+            </div>
                   
                   <!-- Node Detail Panel -->
                   <div id="node-detail-panel" class="node-detail-panel hidden">
@@ -905,8 +920,8 @@
                       <span class="value" id="total-agents">0</span>
                     </div>
                     <div class="stat-card">
-                      <span class="label">총 룰셋</span>
-                      <span class="value" id="total-rulesets">0</span>
+                      <span class="label">총 그룹</span>
+                      <span class="value" id="total-groups">0</span>
                     </div>
                     <div class="stat-card">
                       <span class="label">정책 위반 (24h)</span>
