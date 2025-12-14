@@ -237,6 +237,14 @@ function renderAgentDetails(agent) {
     }
   }
 
+  // 룰셋 새로고침 버튼 이벤트
+  const refreshPolicyButton = node.querySelector('#refresh-policy-btn');
+  if (refreshPolicyButton) {
+    refreshPolicyButton.addEventListener('click', async () => {
+      await refreshAgentPolicy(agent, refreshPolicyButton, actionStatus);
+    });
+  }
+
   container.appendChild(node);
 }
 
@@ -379,6 +387,69 @@ function showAgentPlaceholder(message) {
       </p>
     </div>
   `;
+}
+
+async function refreshAgentPolicy(agent, triggerButton, statusElement) {
+  if (!agent || !agent.agent_id) return;
+
+  const label = agent.name || agent.agent_id;
+  const originalLabel = triggerButton?.textContent;
+  
+  // 에이전트 URL 확인
+  const agentUrl = agent.card?.url || agent.url;
+  if (!agentUrl) {
+    setAgentActionStatus(statusElement, '에이전트 URL 정보가 없습니다.', true);
+    return;
+  }
+  
+  if (triggerButton) {
+    triggerButton.disabled = true;
+    triggerButton.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">sync</span> 새로고침 중...';
+  }
+  setAgentActionStatus(statusElement, '정책 캐시를 새로고침하는 중...');
+
+  try {
+    const response = await fetch(`${API_BASE}/api/agents/${encodeURIComponent(agent.agent_id)}/refresh-policy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
+
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      const connectedUrl = result.connected_url ? ` (${result.connected_url})` : '';
+      setAgentActionStatus(statusElement, `✓ 정책 캐시가 새로고침되었습니다.${connectedUrl}`);
+      // 캐시된 에이전트 정보 갱신
+      state.agentCache.delete(agent.agent_id);
+    } else {
+      let errorMsg = result.message || result.error || '정책 새로고침에 실패했습니다.';
+      
+      // 연결 실패 시 에이전트 서버 확인 안내
+      if (result.error && (result.error.includes('Connection') || result.error.includes('refused'))) {
+        errorMsg = `에이전트 서버(${agentUrl})에 연결할 수 없습니다. 에이전트가 실행 중인지 확인하세요.`;
+      }
+      
+      setAgentActionStatus(statusElement, errorMsg, true);
+      console.warn('정책 새로고침 실패:', result);
+    }
+  } catch (error) {
+    console.error('정책 새로고침 실패', error);
+    setAgentActionStatus(statusElement, error.message || '정책 새로고침에 실패했습니다.', true);
+  } finally {
+    if (triggerButton) {
+      triggerButton.disabled = false;
+      triggerButton.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">refresh</span> 룰셋 새로고침';
+    }
+    // 5초 후 상태 메시지 자동 삭제 (에러가 아닌 경우)
+    setTimeout(() => {
+      if (statusElement && !statusElement.classList.contains('error')) {
+        statusElement.textContent = '';
+      }
+    }, 5000);
+  }
 }
 
 async function deleteAgent(agent, triggerButton, statusElement) {

@@ -132,3 +132,39 @@ def read_users_me(token: str = Depends(oauth2_scheme)):
             detail="User not found")
     
     return user
+
+
+# 토큰 갱신 엔드포인트 (기존 토큰이 유효하면 새 토큰 발급)
+@router.post("/refresh", response_model=Token)
+def refresh_token(token: str = Depends(oauth2_scheme)):
+    """
+    현재 유효한 토큰을 새 토큰으로 갱신합니다.
+    토큰이 만료되기 전에 호출해야 합니다.
+    """
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    
+    email: str | None = payload.get("sub")
+    tenant_claim = payload.get("tenant")
+    
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token missing identity claims",
+        )
+    
+    # 사용자가 여전히 존재하는지 확인
+    user = get_user(email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    
+    # 새 토큰 발급 (사용자의 현재 tenant 정보 사용)
+    new_token = create_access_token(subject=user.email, tenant=user.tenant)
+    return {"access_token": new_token, "token_type": "bearer"}

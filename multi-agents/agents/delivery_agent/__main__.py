@@ -1,6 +1,8 @@
 import click
 import uvicorn
 from starlette.requests import Request # 타입 힌트용
+from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 from a2a.types import (
     AgentCapabilities,
@@ -58,6 +60,50 @@ def main(inhost, inport):
 
     # 2. [수정] .build()를 먼저 호출하여 Starlette 앱 객체를 얻습니다.
     app = server_app.build()
+
+    # ------------------------------------------------------------------
+    # 정책 캐시 새로고침 API 엔드포인트
+    # ------------------------------------------------------------------
+    async def refresh_policy_handler(request: Request):
+        """정책 캐시를 비우고 새로고침합니다."""
+        try:
+            body = {}
+            try:
+                body = await request.json()
+            except Exception:
+                pass
+            
+            tenant = body.get("tenant") if body else None
+            result = plugin.clear_policy_cache(tenant=tenant)
+            
+            return JSONResponse({
+                "success": True,
+                "message": "정책 캐시가 새로고침되었습니다.",
+                "details": result,
+            })
+        except Exception as e:
+            return JSONResponse({
+                "success": False,
+                "error": str(e),
+            }, status_code=500)
+
+    async def get_cache_status_handler(request: Request):
+        """현재 정책 캐시 상태를 반환합니다."""
+        try:
+            status = plugin.get_cache_status()
+            return JSONResponse({
+                "success": True,
+                "cache": status,
+            })
+        except Exception as e:
+            return JSONResponse({
+                "success": False,
+                "error": str(e),
+            }, status_code=500)
+
+    # 기존 라우트에 추가
+    app.routes.append(Route("/api/refresh-policy", refresh_policy_handler, methods=["POST"]))
+    app.routes.append(Route("/api/cache-status", get_cache_status_handler, methods=["GET"]))
 
     # 3. [수정] 미들웨어 추가: 헤더를 낚아채서 ContextVar에 저장
     @app.middleware("http")

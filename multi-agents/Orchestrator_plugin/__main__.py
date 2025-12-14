@@ -1,6 +1,8 @@
 import click
 import uvicorn
 from starlette.requests import Request  # type: ignore[unused-import]
+from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 from a2a.types import (
     AgentCapabilities,
@@ -57,6 +59,50 @@ def main(inhost: str, inport: int):
     # remote tool callers both rely on GLOBAL_REQUEST_TOKEN to propagate the
     # caller's JWT to downstream agents.
     app = server.build()
+
+    # ------------------------------------------------------------------
+    # 정책 캐시 새로고침 API 엔드포인트
+    # ------------------------------------------------------------------
+    async def refresh_policy_handler(request: Request):
+        """정책 캐시를 비우고 새로고침합니다."""
+        try:
+            body = {}
+            try:
+                body = await request.json()
+            except Exception:
+                pass
+            
+            tenant = body.get("tenant") if body else None
+            result = policy_plugin.clear_policy_cache(tenant=tenant)
+            
+            return JSONResponse({
+                "success": True,
+                "message": "정책 캐시가 새로고침되었습니다.",
+                "details": result,
+            })
+        except Exception as e:
+            return JSONResponse({
+                "success": False,
+                "error": str(e),
+            }, status_code=500)
+
+    async def get_cache_status_handler(request: Request):
+        """현재 정책 캐시 상태를 반환합니다."""
+        try:
+            status = policy_plugin.get_cache_status()
+            return JSONResponse({
+                "success": True,
+                "cache": status,
+            })
+        except Exception as e:
+            return JSONResponse({
+                "success": False,
+                "error": str(e),
+            }, status_code=500)
+
+    # 기존 라우트에 추가
+    app.routes.append(Route("/api/refresh-policy", refresh_policy_handler, methods=["POST"]))
+    app.routes.append(Route("/api/cache-status", get_cache_status_handler, methods=["GET"]))
 
     @app.middleware("http")
     async def token_capture_middleware(request, call_next):

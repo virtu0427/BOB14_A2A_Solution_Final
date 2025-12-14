@@ -104,6 +104,52 @@ class PolicyEnforcementPlugin(BasePlugin):
         pass
 
     # ------------------------------------------------------------------
+    # Policy Cache Management (런타임 정책 새로고침)
+    # ------------------------------------------------------------------
+    def clear_policy_cache(self, tenant: Optional[str] = None) -> Dict[str, Any]:
+        """
+        정책 캐시를 비웁니다. 다음 요청 시 새로운 정책을 API에서 가져옵니다.
+        
+        Args:
+            tenant: 특정 테넌트만 캐시를 비우려면 지정. None이면 전체 캐시 비움.
+        
+        Returns:
+            캐시 비우기 결과 정보
+        """
+        if tenant:
+            # 특정 테넌트만 캐시 비우기
+            removed = []
+            keys_to_remove = [k for k in self._policy_cache.keys() if tenant in k]
+            for key in keys_to_remove:
+                del self._policy_cache[key]
+                removed.append(key)
+            print(f"[PolicyPlugin][{self.agent_id}] 정책 캐시 비움 (tenant: {tenant}): {removed}")
+            return {
+                "agent_id": self.agent_id,
+                "cleared": removed,
+                "remaining_cache_size": len(self._policy_cache),
+            }
+        else:
+            # 전체 캐시 비우기
+            cache_size = len(self._policy_cache)
+            cleared_keys = list(self._policy_cache.keys())
+            self._policy_cache.clear()
+            print(f"[PolicyPlugin][{self.agent_id}] 전체 정책 캐시 비움: {cache_size}개 항목")
+            return {
+                "agent_id": self.agent_id,
+                "cleared": cleared_keys,
+                "cleared_count": cache_size,
+            }
+
+    def get_cache_status(self) -> Dict[str, Any]:
+        """현재 정책 캐시 상태를 반환합니다."""
+        return {
+            "agent_id": self.agent_id,
+            "cache_size": len(self._policy_cache),
+            "cached_tenants": list(self._policy_cache.keys()),
+        }
+
+    # ------------------------------------------------------------------
     # Policy retrieval helpers
     # ------------------------------------------------------------------
     def _get_policy_for_tenant(self, tenant_str: str) -> Dict[str, Any]:
