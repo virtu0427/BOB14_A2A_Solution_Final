@@ -26,7 +26,7 @@ DEFAULT_USER_CREDENTIALS = [
     },
     {
         "email": "admin@example.com",
-        "tenant": ["logistics", "customer-service"],
+        "tenant": "logistics",
         "name": "관리자",
         "title": "Admin",
         "password": "admin123",
