@@ -16,19 +16,31 @@ DEFAULT_USER_CREDENTIALS = [
         "email": "user2@example.com",
         "name": "Logistics Staff",
         "title": "Operations Manager",
-        "password": "password1234",
+        "password": "pwd123",
     },
     {
         "email": "user@example.com",
         "name": "Customer Support",
         "title": "CS Specialist",
-        "password": "password123",
+        "password": "pwd123",
     },
     {
         "email": "admin@example.com",
         "name": "Admin",
         "title": "Admin",
         "password": "admin123",
+    },
+        {
+        "email": "user3@example.com",
+        "name": "Hong Gil-dong",
+        "title": "Staff",
+        "password": "pwd123",
+    },
+            {
+        "email": "user4@example.com",
+        "name": "Lee Soon-shin",
+        "title": "Staff",
+        "password": "pwd123",
     },
 ]
 
