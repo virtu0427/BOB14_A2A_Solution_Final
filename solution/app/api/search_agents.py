@@ -4,6 +4,7 @@ from . import api_bp
 from ..core import repo
 from ..core.auth import require_jwt
 from ..core.logging import append_log
+from ..core.tenants import matches_allowed_tenants
 
 # 페이지네이션 기본 범위
 DEFAULT_LIMIT = 20
@@ -59,13 +60,7 @@ def search_agents():
                 continue
         # 일반 사용자는 자신의 tenant 와 겹치는 에이전트만 조회 가능
         if not is_admin:
-            record_tenants = agent.get('tenants')
-            if not isinstance(record_tenants, list):
-                record_tenants = []
-            if not any(
-                isinstance(t, str) and t.strip().lower() in allowed_tenants
-                for t in record_tenants
-            ):
+            if not matches_allowed_tenants(agent.get('tenants'), allowed_tenants):
                 continue
         filtered.append(agent)
 

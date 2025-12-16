@@ -75,6 +75,7 @@ class PolicyEnforcementPlugin(BasePlugin):
         self._jwt_algorithm = os.getenv("JWT_ALGORITHM") or os.getenv("ALGORITHM") or "HS256"
         self._jwt_audience = os.getenv("JWT_AUDIENCE")
         self._last_auth_token: str | None = None
+        self._last_actor: str | None = None  # JWT subject/email 캐시 (로그 actor용)
         self._captured_token_hint: str | None = None
         self._last_policy_fetch_token: str | None = None
         self._replay_cache: "OrderedDict[str, float]" = OrderedDict()
@@ -865,6 +866,8 @@ class PolicyEnforcementPlugin(BasePlugin):
 
     def _send_log(self, payload: Dict[str, Any]) -> None:
         payload = self._sanitize_payload(dict(payload))
+        if not payload.get("actor"):
+            payload["actor"] = self._last_actor or ""
         log_url = f"{self.log_server_url}/api/logs"
         print(f"[PolicyPlugin] 📤 로그 전송 시도: {log_url}")
         print(f"[PolicyPlugin] 📦 페이로드: {payload}")
@@ -1071,13 +1074,18 @@ class PolicyEnforcementPlugin(BasePlugin):
     def _get_auth_claims(self, tool_context: Any, tool_args: Dict[str, Any]) -> Dict[str, Any]:
         token = self._extract_auth_token(tool_context, tool_args)
         if not token:
+            self._last_actor = None
             return {}
         claims = self._decode_jwt(token)
         if claims:
+            actor = self._extract_actor_from_claims(claims)
+            self._last_actor = actor or None
             repeated_token = token == self._last_auth_token
             self._log_token_inspection(token, claims, repeated=repeated_token)
             self._log_policy_binding(token, claims)
             self._last_auth_token = token
+        else:
+            self._last_actor = None
         return claims
 
     def _decode_jwt(self, token: str) -> Dict[str, Any]:
@@ -1139,6 +1147,16 @@ class PolicyEnforcementPlugin(BasePlugin):
             elif isinstance(value, Iterable):
                 roles.extend(str(item).strip().lower() for item in value if str(item).strip())
         return roles
+
+    @staticmethod
+    def _extract_actor_from_claims(claims: Dict[str, Any]) -> str:
+        if not isinstance(claims, dict):
+            return ""
+        for key in ("sub", "email", "user", "principal"):
+            value = claims.get(key)
+            if value:
+                return str(value)
+        return ""
 
     def _extract_tenant_from_claims(self, claims: Dict[str, Any]) -> str:
         """

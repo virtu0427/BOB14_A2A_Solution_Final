@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import urllib.request
-from typing import Iterable, List, Dict, Any
+from typing import Iterable, List, Dict, Any, Set
 
 _DEFAULT_CHOICES = [
     {"value": "customer-service", "label": "Customer Service"},
@@ -74,6 +74,18 @@ def normalize_tenants(values: object, strict: bool = False) -> List[str]:
             normalized.append(slug)
             seen.add(slug)
     return normalized
+
+
+def matches_allowed_tenants(record_tenants: object, allowed_tenants: Set[str]) -> bool:
+    """Return True when the record can be seen by a caller with `allowed_tenants`."""
+    normalized = normalize_tenants(record_tenants)
+    if not normalized:
+        # No tenant restriction means the agent is public
+        return True
+    if not allowed_tenants:
+        # Caller has no tenant so they cannot see tenant-specific agents
+        return False
+    return any(tenant in allowed_tenants for tenant in normalized)
 
 
 def extract_tenants(raw: object) -> List[str]:

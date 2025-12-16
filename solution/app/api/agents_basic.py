@@ -15,6 +15,7 @@ from . import api_bp
 from ..core import repo
 from ..core.logging import append_log
 from ..core.auth import require_jwt
+from ..core.tenants import matches_allowed_tenants
 
 _POLICY_LIST_KEYS = [
     "prompt_validation_rulesets",
@@ -144,13 +145,7 @@ def list_agents():
         if not isinstance(agent, dict):
             continue
         if auth_header and not is_admin:
-            record_tenants = agent.get("tenants")
-            if not isinstance(record_tenants, list):
-                record_tenants = []
-            if not any(
-                isinstance(t, str) and t.strip().lower() in allowed_tenants
-                for t in record_tenants
-            ):
+            if not matches_allowed_tenants(agent.get("tenants"), allowed_tenants):
                 continue
         filtered.append(agent)
 
@@ -183,13 +178,7 @@ def list_agents_agent_view():
         if not isinstance(agent, dict):
             continue
         if not is_admin:
-            record_tenants = agent.get("tenants")
-            if not isinstance(record_tenants, list):
-                record_tenants = []
-            if not any(
-                isinstance(t, str) and t.strip().lower() in allowed_tenants
-                for t in record_tenants
-            ):
+            if not matches_allowed_tenants(agent.get("tenants"), allowed_tenants):
                 continue
         filtered.append(agent)
 
@@ -258,13 +247,7 @@ def get_agent_agent_view(agent_id):
         return jsonify({"error": 'agent not found'}), 404
 
     if not is_admin:
-        record_tenants = agent.get("tenants")
-        if not isinstance(record_tenants, list):
-            record_tenants = []
-        if not any(
-            isinstance(t, str) and t.strip().lower() in allowed_tenants
-            for t in record_tenants
-        ):
+        if not matches_allowed_tenants(agent.get("tenants"), allowed_tenants):
             return jsonify({"error": "FORBIDDEN", "message": "tenant mismatch"}), 403
 
     if ENABLE_AGENT_ACCESS_LOGS:
