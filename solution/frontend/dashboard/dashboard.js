@@ -1216,7 +1216,7 @@ function showNodeDetailPanel(node, links) {
   }
 
   // 관련 이벤트 로드
-  loadNodeEvents(node.id, node.type);
+  loadNodeEvents(node);
 
   // 패널 닫기 버튼 이벤트
   const closeBtn = document.getElementById('panel-close');
@@ -1243,61 +1243,71 @@ function getNodeTypeLabel(type) {
   return labels[type] || type || '알 수 없음';
 }
 
-async function loadNodeEvents(nodeId, nodeType) {
+function normalizeAgentIdentifier(value) {
+  return (value || '')
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[#.:_-]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function buildNodeIdentifierSet(node) {
+  const identifiers = new Set();
+  const add = (val) => {
+    const normalized = normalizeAgentIdentifier(val);
+    if (normalized) identifiers.add(normalized);
+  };
+
+  add(node.id);
+  add(node.name);
+
+  const idParts = (node.id || '').split(/[#.:]/).filter(Boolean);
+  idParts.forEach(add);
+
+  return identifiers;
+}
+
+function isLogRelatedToNode(log, nodeIdentifiers, nodeType) {
+  if (nodeType === 'registry') return log.source === 'registry';
+
+  const candidates = [
+    log.agent_id,
+    log.agentId,
+    log.source_agent,
+    log.target_agent,
+    log.destination_agent,
+    log.callee_id,
+    log.caller_id,
+  ];
+
+  return candidates.some((candidate) => {
+    const normalized = normalizeAgentIdentifier(candidate);
+    return normalized && nodeIdentifiers.has(normalized);
+  });
+}
+
+async function loadNodeEvents(node) {
   const eventList = document.getElementById('panel-events');
   if (!eventList) return;
 
   eventList.innerHTML = '<div class="no-events">로딩 중...</div>';
 
+  const nodeIdentifiers = buildNodeIdentifierSet(node);
+
   try {
-    const response = await fetch(`${API_BASE}/api/logs?limit=100`);
-    if (!response.ok) throw new Error('로그를 불러오지 못했습니다');
-    
-    const logsData = await response.json();
-    const logs = Array.isArray(logsData) ? logsData : (logsData.logs || []);
-
-    // 노드 ID에서 검색 키워드 추출 (이름 기반 매칭용)
-    const nodeIdLower = nodeId.toLowerCase();
-    const nodeKeywords = [];
-    
-    // ID에서 에이전트 이름 부분 추출 (예: "oneth.ai#agent:DeliveryAgent.v1.0.0")
-    const idParts = nodeId.match(/[:#]([^.:#]+)/g);
-    if (idParts) {
-      idParts.forEach(part => {
-        const cleanPart = part.replace(/[:#]/g, '').toLowerCase();
-        if (cleanPart && cleanPart.length > 2) {
-          nodeKeywords.push(cleanPart);
-        }
-      });
-    }
-    nodeKeywords.push(nodeIdLower);
-
-    // 해당 노드와 관련된 로그 필터링
-    let relatedLogs;
-    if (nodeType === 'registry') {
-      relatedLogs = logs.filter(log => log.source === 'registry');
-    } else {
-      relatedLogs = logs.filter(log => {
-        const agentId = (log.agent_id || log.agentId || '').toLowerCase();
-        const calleeId = (log.callee_id || log.target_agent || '').toLowerCase();
-        
-        // 정확히 일치
-        if (agentId === nodeIdLower || calleeId === nodeIdLower) return true;
-        
-        // 키워드 기반 매칭
-        for (const keyword of nodeKeywords) {
-          if (agentId.includes(keyword) || keyword.includes(agentId) ||
-              calleeId.includes(keyword) || keyword.includes(calleeId)) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
+    let logs = cachedLogs;
+    if (!Array.isArray(logs) || logs.length === 0) {
+      const response = await fetch(`${API_BASE}/api/logs?limit=200`);
+      if (!response.ok) throw new Error('로그를 불러오지 못했습니다');
+      const logsData = await response.json();
+      logs = Array.isArray(logsData) ? logsData : (logsData.logs || []);
     }
 
-    // 최근 10개만 표시
-    relatedLogs = relatedLogs.slice(0, 10);
+    const relatedLogs = (logs || [])
+      .filter(log => isLogRelatedToNode(log, nodeIdentifiers, node.type))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 10);
 
     if (relatedLogs.length === 0) {
       eventList.innerHTML = '<div class="no-events">관련 이벤트가 없습니다</div>';
