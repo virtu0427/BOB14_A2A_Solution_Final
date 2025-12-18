@@ -636,13 +636,13 @@ function openRulesetForm(rule = null, context = {}) {
   if (!rule && idInput && nameInput) {
     const nextId = generateNextRuleId();
     idInput.value = nextId;
-    nameInput.value = nextId;
+    nameInput.value = "";
   } else if (rule) {
     if (idInput) {
       idInput.value = rule.ruleset_id;
       idInput.disabled = true;
     }
-    if (nameInput) nameInput.value = rule.ruleset_id || rule.name || "";
+    if (nameInput) nameInput.value = rule.name || rule.ruleset_id || "";
   }
 
   form.querySelector("#ruleset-group-id").value = groupId || "";
@@ -810,11 +810,12 @@ function openRulesetForm(rule = null, context = {}) {
     const data = Object.fromEntries(formData.entries());
     if (data.ruleset_id) {
       data.ruleset_id = data.ruleset_id.trim();
-      data.name = data.ruleset_id;
     } else if (!rule) {
       data.ruleset_id = generateNextRuleId();
-      data.name = data.ruleset_id;
     }
+
+    const trimmedName = (data.name || "").trim();
+    data.name = trimmedName || data.ruleset_id;
 
     if (scope === "group") {
       data.enabled = true;

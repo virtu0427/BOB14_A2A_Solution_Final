@@ -177,6 +177,12 @@
         background: rgba(9, 14, 30, 0.5);
       }
 
+      .panel-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
       .panel-title {
         display: flex;
         align-items: center;
@@ -218,7 +224,30 @@
       }
 
       .panel-close .material-symbols-outlined {
-        font-size: 1.1rem;
+        font-size: 0.95rem;
+      }
+
+      .panel-hide .material-symbols-outlined {
+        font-size: 0.9rem;
+      }
+
+      .panel-hide {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        border-radius: 8px;
+        padding: 4px 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 11px;
+      }
+
+      .panel-hide:hover {
+        background: rgba(255, 255, 255, 0.16);
+        color: #fff;
       }
 
       .panel-content {
@@ -872,9 +901,15 @@
                         <span class="node-status-dot" id="panel-status-dot"></span>
                         <span id="panel-node-name">노드 선택</span>
                       </div>
-                      <button class="panel-close" id="panel-close">
-                        <span class="material-symbols-outlined">close</span>
-                      </button>
+                      <div class="panel-actions">
+                        <button class="panel-hide hidden" id="panel-hide-node">
+                          <span class="material-symbols-outlined">visibility_off</span>
+                          숨기기
+                        </button>
+                        <button class="panel-close" id="panel-close">
+                          <span class="material-symbols-outlined">close</span>
+                        </button>
+                      </div>
                     </div>
                     <div class="panel-content">
                       <div class="panel-section">

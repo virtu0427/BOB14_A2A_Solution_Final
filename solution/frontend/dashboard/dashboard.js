@@ -25,7 +25,10 @@ window.addEventListener('DOMContentLoaded', () => {
 function setupControls() {
   const refreshFlowButton = document.getElementById('refresh-flow');
   if (refreshFlowButton) {
-    refreshFlowButton.addEventListener('click', () => loadAgentFlow(true));
+    refreshFlowButton.addEventListener('click', () => {
+      clearHiddenExternalNodes();
+      loadAgentFlow(true);
+    });
   }
 
   const refreshDashboardButton = document.getElementById('refresh-dashboard');
@@ -497,6 +500,7 @@ async function loadAgentFlow(manual = false) {
 
     // 그래프 데이터 구성
     const flow = buildGraphFromData(agents, logs);
+    currentFlowData = flow;
     renderAgentFlowGraph(flow);
 
     if (statusPill) {
@@ -721,6 +725,35 @@ let graphContainer = null;
 let currentSimulation = null;
 let currentTransform = null;  // 현재 zoom/pan 상태 저장
 let nodePositions = new Map();  // 노드 위치 저장
+let currentFlowData = null; // 최근 로드된 그래프 데이터
+
+const HIDDEN_EXTERNAL_STORAGE_KEY = 'agentFlowHiddenExternalNodes';
+let hiddenExternalNodes = (() => {
+  try {
+    const raw = localStorage.getItem(HIDDEN_EXTERNAL_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) return new Set(parsed);
+  } catch (err) {
+    console.warn('hidden node storage parse failed', err);
+  }
+  return new Set();
+})();
+
+function persistHiddenExternalNodes() {
+  try {
+    localStorage.setItem(
+      HIDDEN_EXTERNAL_STORAGE_KEY,
+      JSON.stringify(Array.from(hiddenExternalNodes))
+    );
+  } catch (err) {
+    console.warn('hidden node storage persist failed', err);
+  }
+}
+
+function clearHiddenExternalNodes() {
+  hiddenExternalNodes.clear();
+  persistHiddenExternalNodes();
+}
 
 function renderAgentFlowGraph(flow) {
   try {
@@ -753,13 +786,23 @@ function renderAgentFlowGraph(flow) {
 
   graphSvg = svg;
 
+  const filteredNodesRaw = (flow.nodes || []).filter((node) => {
+    return !(node.type === 'external' && hiddenExternalNodes.has(node.id));
+  });
+  const visibleNodeIds = new Set(filteredNodesRaw.map((n) => n.id));
+  const filteredEdgesRaw = (flow.edges || []).filter((edge) => {
+    const sourceId = typeof edge.source === 'object' ? edge.source.id : edge.source;
+    const targetId = typeof edge.target === 'object' ? edge.target.id : edge.target;
+    return visibleNodeIds.has(sourceId) && visibleNodeIds.has(targetId);
+  });
+
   // 노드 생성 시 저장된 위치 복원 (위치가 있으면 고정)
-  const nodes = flow.nodes?.map((node) => {
+  const nodes = filteredNodesRaw.map((node) => {
     const savedPos = nodePositions.get(node.id);
     if (savedPos && savedPos.x !== undefined && savedPos.y !== undefined) {
       // 저장된 위치가 있으면 해당 위치로 고정
-      return { 
-        ...node, 
+      return {
+        ...node,
         x: savedPos.x, 
         y: savedPos.y, 
         fx: savedPos.x,  // 고정 위치 설정
@@ -768,7 +811,7 @@ function renderAgentFlowGraph(flow) {
     }
     return { ...node };
   }) || [];
-  const links = flow.edges?.map((edge) => ({ ...edge })) || [];
+  const links = filteredEdgesRaw.map((edge) => ({ ...edge }));
 
   // Create main container for all graph elements FIRST
   graphContainer = svg.append('g').attr('class', 'graph-main');
@@ -845,7 +888,7 @@ function renderAgentFlowGraph(flow) {
       if (d.type === 'warning') return 'rgba(255, 170, 51, 0.5)';
       return 'rgba(101, 209, 255, 0.35)';
     })
-    .attr('stroke-width', (d) => Math.max(1.5, Math.log((d.count || 1) + 1) * 1.5))
+    .attr('stroke-width', 2)
     .attr('marker-end', 'url(#arrowhead)')
     .style('cursor', 'pointer')
     .on('mouseover', (event, d) => showLinkTooltip(event, d))
@@ -1175,10 +1218,29 @@ function showNodeDetailPanel(node, links) {
     nodeName.textContent = node.name || node.id;
   }
 
+  // 숨기기 버튼 (외부 노드만)
+  const hideBtn = document.getElementById('panel-hide-node');
+  if (hideBtn) {
+    if (node.type === 'external') {
+      hideBtn.classList.remove('hidden');
+      hideBtn.onclick = () => {
+        hiddenExternalNodes.add(node.id);
+        persistHiddenExternalNodes();
+        hideNodeDetailPanel();
+        if (currentFlowData) {
+          renderAgentFlowGraph(currentFlowData);
+        }
+      };
+    } else {
+      hideBtn.classList.add('hidden');
+      hideBtn.onclick = null;
+    }
+  }
+
   // 기본 정보 업데이트
   const basicInfo = document.getElementById('panel-basic-info');
   if (basicInfo) {
-    const connections = links.filter(l => 
+    const connections = links.filter(l =>
       l.source.id === node.id || l.target.id === node.id ||
       l.source === node.id || l.target === node.id
     ).length;
@@ -1216,7 +1278,7 @@ function showNodeDetailPanel(node, links) {
   }
 
   // 관련 이벤트 로드
-  loadNodeEvents(node.id, node.type);
+  loadNodeEvents(node);
 
   // 패널 닫기 버튼 이벤트
   const closeBtn = document.getElementById('panel-close');
@@ -1243,61 +1305,71 @@ function getNodeTypeLabel(type) {
   return labels[type] || type || '알 수 없음';
 }
 
-async function loadNodeEvents(nodeId, nodeType) {
+function normalizeAgentIdentifier(value) {
+  return (value || '')
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[#.:_-]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function buildNodeIdentifierSet(node) {
+  const identifiers = new Set();
+  const add = (val) => {
+    const normalized = normalizeAgentIdentifier(val);
+    if (normalized) identifiers.add(normalized);
+  };
+
+  add(node.id);
+  add(node.name);
+
+  const idParts = (node.id || '').split(/[#.:]/).filter(Boolean);
+  idParts.forEach(add);
+
+  return identifiers;
+}
+
+function isLogRelatedToNode(log, nodeIdentifiers, nodeType) {
+  if (nodeType === 'registry') return log.source === 'registry';
+
+  const candidates = [
+    log.agent_id,
+    log.agentId,
+    log.source_agent,
+    log.target_agent,
+    log.destination_agent,
+    log.callee_id,
+    log.caller_id,
+  ];
+
+  return candidates.some((candidate) => {
+    const normalized = normalizeAgentIdentifier(candidate);
+    return normalized && nodeIdentifiers.has(normalized);
+  });
+}
+
+async function loadNodeEvents(node) {
   const eventList = document.getElementById('panel-events');
   if (!eventList) return;
 
   eventList.innerHTML = '<div class="no-events">로딩 중...</div>';
 
+  const nodeIdentifiers = buildNodeIdentifierSet(node);
+
   try {
-    const response = await fetch(`${API_BASE}/api/logs?limit=100`);
-    if (!response.ok) throw new Error('로그를 불러오지 못했습니다');
-    
-    const logsData = await response.json();
-    const logs = Array.isArray(logsData) ? logsData : (logsData.logs || []);
-
-    // 노드 ID에서 검색 키워드 추출 (이름 기반 매칭용)
-    const nodeIdLower = nodeId.toLowerCase();
-    const nodeKeywords = [];
-    
-    // ID에서 에이전트 이름 부분 추출 (예: "oneth.ai#agent:DeliveryAgent.v1.0.0")
-    const idParts = nodeId.match(/[:#]([^.:#]+)/g);
-    if (idParts) {
-      idParts.forEach(part => {
-        const cleanPart = part.replace(/[:#]/g, '').toLowerCase();
-        if (cleanPart && cleanPart.length > 2) {
-          nodeKeywords.push(cleanPart);
-        }
-      });
-    }
-    nodeKeywords.push(nodeIdLower);
-
-    // 해당 노드와 관련된 로그 필터링
-    let relatedLogs;
-    if (nodeType === 'registry') {
-      relatedLogs = logs.filter(log => log.source === 'registry');
-    } else {
-      relatedLogs = logs.filter(log => {
-        const agentId = (log.agent_id || log.agentId || '').toLowerCase();
-        const calleeId = (log.callee_id || log.target_agent || '').toLowerCase();
-        
-        // 정확히 일치
-        if (agentId === nodeIdLower || calleeId === nodeIdLower) return true;
-        
-        // 키워드 기반 매칭
-        for (const keyword of nodeKeywords) {
-          if (agentId.includes(keyword) || keyword.includes(agentId) ||
-              calleeId.includes(keyword) || keyword.includes(calleeId)) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
+    let logs = cachedLogs;
+    if (!Array.isArray(logs) || logs.length === 0) {
+      const response = await fetch(`${API_BASE}/api/logs?limit=200`);
+      if (!response.ok) throw new Error('로그를 불러오지 못했습니다');
+      const logsData = await response.json();
+      logs = Array.isArray(logsData) ? logsData : (logsData.logs || []);
     }
 
-    // 최근 10개만 표시
-    relatedLogs = relatedLogs.slice(0, 10);
+    const relatedLogs = (logs || [])
+      .filter(log => isLogRelatedToNode(log, nodeIdentifiers, node.type))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 10);
 
     if (relatedLogs.length === 0) {
       eventList.innerHTML = '<div class="no-events">관련 이벤트가 없습니다</div>';
