@@ -413,10 +413,6 @@ def refresh_agent_policy(agent_id):
     result = _call_agent_refresh_policy(agent_url, tenant)
     
     if result.get("success"):
-        append_log(
-            f"Agent policy cache refreshed: {agent_id}",
-            ok=True,
-        )
         return jsonify({
             "success": True,
             "agent_id": agent_id,
